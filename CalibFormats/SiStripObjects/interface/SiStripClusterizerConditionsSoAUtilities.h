@@ -32,20 +32,18 @@ class SiStripNoises;
 
 namespace stripgpu {
   static constexpr std::uint16_t badBit = 1 << 15;
-//
-//  __host__ __device__ inline fedId_t fedIndex(fedId_t fed) { return fed - sistrip::FED_ID_MIN; }
-//  __host__ __device__ inline std::uint32_t stripIndex(fedId_t fed, fedCh_t channel, stripId_t strip) {
-//    return fedIndex(fed) * sistrip::FEDCH_PER_FED * sistrip::STRIPS_PER_FEDCH + channel * sistrip::STRIPS_PER_FEDCH +
-//           (strip % sistrip::STRIPS_PER_FEDCH);
-//  }
-//  __host__ __device__ inline std::uint32_t apvIndex(fedId_t fed, fedCh_t channel, stripId_t strip) {
-//    return fedIndex(fed) * sistrip::APVS_PER_FEDCH * sistrip::FEDCH_PER_FED + sistrip::APVS_PER_CHAN * channel +
-//           (strip % sistrip::STRIPS_PER_FEDCH) / sistrip::STRIPS_PER_APV;
-//  }
-//  __host__ __device__ inline std::uint32_t channelIndex(fedId_t fed, fedCh_t channel) {
-//    return fedIndex(fed) * sistrip::FEDCH_PER_FED + channel;
-//  }
-//
+
+  __host__ __device__ inline fedId_t fedIndexHD(fedId_t fed) { return fed - sistrip::FED_ID_MIN; }
+  __host__ __device__ inline std::uint32_t stripIndexHD(fedId_t fed, fedCh_t channel, stripId_t strip) {
+    return (strip % sistrip::STRIPS_PER_FEDCH);
+  }
+  __host__ __device__ inline std::uint32_t apvIndexHD(fedId_t fed, fedCh_t channel, stripId_t strip) {
+    return (strip % sistrip::STRIPS_PER_FEDCH) / sistrip::STRIPS_PER_APV;
+  }
+  __host__ __device__ inline std::uint32_t channelIndexHD(fedId_t fed, fedCh_t channel) {
+    return fedIndexHD(fed) * sistrip::FEDCH_PER_FED + channel;
+  }
+
 }  // namespace stripgpu
 
 #endif
