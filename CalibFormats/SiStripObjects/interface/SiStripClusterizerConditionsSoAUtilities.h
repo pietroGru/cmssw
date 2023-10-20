@@ -5,10 +5,6 @@
 #include "DataFormats/SiStripCommon/interface/ConstantsForHardwareSystems.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
 
-#include "HeterogeneousCore/CUDAUtilities/interface/device_unique_ptr.h"
-#include "HeterogeneousCore/CUDAUtilities/interface/host_unique_ptr.h"
-#include "HeterogeneousCore/CUDAUtilities/interface/HostAllocator.h"
-
 struct SiStripClusterizerConditionsSoA {
   using arraySTRIPS_PER_FEDCH = std::array<std::uint16_t,sistrip::STRIPS_PER_FEDCH>;
   using arrayAPVS_PER_FEDCH = std::array<float,sistrip::APVS_PER_FEDCH>;
