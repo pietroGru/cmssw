@@ -11,3 +11,28 @@
   <use name="CalibTracker/SiStripCommon"/>
   <flags EDM_PLUGIN="1"/>
 </library>
+<!-- alpaka-based portable plugins -->
+<library file="alpaka/*.cc" name="RecoLocalTrackerSiStripClusterizerPluginsPortable">
+  <use name="alpaka"/>
+  <!-- The dependency on "DataFormats/PortableTestObjects" automatically expands to include
+  the host-only library (if it exists) and the corresponding Alpaka libraries (if they exist)
+  <use name="RecoLocalTracker/SiStripClusterizer"/>
+  <use name="RecoLocalTracker/SiStripZeroSuppression"/>
+  <use name="RecoTracker/PixelLowPtUtilities"/>
+  <use name="DataFormats/Portable"/>
+  <use name="FWCore/Framework"/>
+  -->
+  <use name="DataFormats/PortableTestObjects"/>
+  <use name="DataFormats/TestObjects"/>
+  <use name="FWCore/ParameterSet"/>
+  <use name="FWCore/Utilities"/>
+  <use name="HeterogeneousCore/AlpakaCore"/>
+  <use name="HeterogeneousCore/AlpakaInterface"/>
+  <use name="HeterogeneousCore/AlpakaTest"/>
+  <!--  -->
+  <use name="EventFilter/SiStripRawToDigi"/>
+  <!-- <use name="CalibFormats/SiStripObjects"/> -->
+  <!-- <use name="CalibTracker/SiStripCommon"/> -->
+  <flags ALPAKA_BACKENDS="1"/>
+  <flags EDM_PLUGIN="1"/>
+</library> 

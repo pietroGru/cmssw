@@ -4,6 +4,7 @@
 #include "DataFormats/SiStripCluster/interface/SiStripTypes.h"
 #include "DataFormats/SiStripCommon/interface/ConstantsForHardwareSystems.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
+#include "device_types.h"
 
 struct SiStripClusterizerConditionsSoA {
   using arraySTRIPS_PER_FEDCH = std::array<std::uint16_t,sistrip::STRIPS_PER_FEDCH>;
@@ -18,16 +19,16 @@ struct SiStripClusterizerConditionsSoA {
                       SOA_COLUMN(float, gain_));
 };
 
-using SiStripClusterizerConditionsLayout = typename SiStripClusterizerConditionsSoA::SiStripClusterizerConditionsSoALayout<>;
-using SiStripClusterizerConditionsView = typename SiStripClusterizerConditionsSoA::SiStripClusterizerConditionsSoALayout<>::View;
-using SiStripClusterizerConditionsConstView = typename SiStripClusterizerConditionsSoA::SiStripClusterizerConditionsSoALayout<>::ConstView;
-
 class SiStripQuality;
 class SiStripGain;
 class SiStripNoises;
 
 namespace stripgpu {
   static constexpr std::uint16_t badBit = 1 << 15;
+
+  using SiStripClusterizerConditionsLayout = typename SiStripClusterizerConditionsSoA::SiStripClusterizerConditionsSoALayout<>;
+  using SiStripClusterizerConditionsView = typename SiStripClusterizerConditionsSoA::SiStripClusterizerConditionsSoALayout<>::View;
+  using SiStripClusterizerConditionsConstView = typename SiStripClusterizerConditionsSoA::SiStripClusterizerConditionsSoALayout<>::ConstView;
 
   __host__ __device__ inline fedId_t fedIndexHD(fedId_t fed) { return fed - sistrip::FED_ID_MIN; }
   __host__ __device__ inline std::uint32_t stripIndexHD(fedId_t fed, fedCh_t channel, stripId_t strip) {
