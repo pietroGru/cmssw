@@ -65,61 +65,18 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     SiStripRawToCluster(edm::ParameterSet const& config);
     ~SiStripRawToCluster() override = default;
 
-    static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-      edm::ParameterSetDescription desc;
-      // desc.add<edm::InputTag>("source");
-      // desc.add("eventSetupSource", edm::ESInputTag{});
-      // desc.add<std::string>("productInstanceName", "");
-
-      desc.add("ProductLabel", edm::InputTag("rawDataCollector"));
-      desc.add<std::string>("ConditionsLabel", "");
-      // Call the fillDescriptions from the clusterizer algo factory, 
-      // and add the Clusterizer settings to the clusterizer class
-      edm::ParameterSetDescription clusterizer;
-      StripClusterizerAlgorithmFactory::fillDescriptions(clusterizer);
-      desc.add("Clusterizer", clusterizer);
-
-      // edm::ParameterSetDescription psetSize;
-      // psetSize.add<int32_t>("alpaka_serial_sync");
-      // psetSize.add<int32_t>("alpaka_cuda_async");
-      // psetSize.add<int32_t>("alpaka_rocm_async");
-      // desc.add("size", psetSize);
-
-      descriptions.addWithDefaultLabel(desc);
-    }
-
-    void produce(device::Event& iEvent, device::EventSetup const& iSetup) override {
-      [[maybe_unused]] auto inpData = iEvent.getHandle(inputToken_);
-      [[maybe_unused]] auto const& esData = iSetup.getData(conditionsToken_);
-
-      auto deviceProduct = std::make_unique<portabletest::TestDeviceCollection>(size_, iEvent.queue());
-      auto deviceProductMulti2 = std::make_unique<portabletest::TestDeviceMultiCollection2>(
-          portabletest::TestDeviceMultiCollection2::SizesArray{{size_, size2_}}, iEvent.queue());
-      auto deviceProductMulti3 = std::make_unique<portabletest::TestDeviceMultiCollection3>(
-          portabletest::TestDeviceMultiCollection3::SizesArray{{size_, size2_, size3_}}, iEvent.queue());
-
-      // run the algorithm, potentially asynchronously
-      algo_.fill(iEvent.queue(), *deviceProduct);
-      algo_.fillMulti2(iEvent.queue(), *deviceProductMulti2);
-      algo_.fillMulti3(iEvent.queue(), *deviceProductMulti3);
-
-      iEvent.put(devicePutToken_, std::move(deviceProduct));
-      iEvent.put(devicePutTokenMulti2_, std::move(deviceProductMulti2));
-      iEvent.put(devicePutTokenMulti3_, std::move(deviceProductMulti3));
-    }
-
-
+    static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+    void produce(device::Event& iEvent, device::EventSetup const& iSetup) override;
+    
 
   private:
     edm::EDGetTokenT<edmtest::IntProduct> inputToken_;
     device::ESGetToken<cms::alpakatest::AlpakaESTestDataB<Device>, AlpakaESTestRecordB> conditionsToken_;
-    device::EDPutToken<portabletest::TestDeviceCollection> devicePutToken_;
-    device::EDPutToken<portabletest::TestDeviceMultiCollection2> devicePutTokenMulti2_;
-    device::EDPutToken<portabletest::TestDeviceMultiCollection3> devicePutTokenMulti3_;
+    device::EDPutToken<portabletest::TestDeviceCollection> outputToken_;
     
-    const int32_t size_;
-    const int32_t size2_;
-    const int32_t size3_;
+    const int32_t size_ = 0;
+    const int32_t size2_ = 0;
+    const int32_t size3_ = 0;
 
     // FED data structures for SiStrip raw data
     std::vector<std::unique_ptr<sistrip::FEDBuffer>> buffers_;
@@ -130,22 +87,60 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     void run(const FEDRawDataCollection& rawColl, const SiStripClusterizerConditions& conditions);
     void fill(uint32_t idet, const FEDRawDataCollection& rawColl, const SiStripClusterizerConditions& conditions);
-  
   };
 
+
   SiStripRawToCluster::SiStripRawToCluster(const edm::ParameterSet& iConfig)
-    : size_(iConfig.getParameter<edm::ParameterSet>("size").getParameter<int32_t>(EDM_STRINGIZE(ALPAKA_ACCELERATOR_NAMESPACE))),
-      size2_(iConfig.getParameter<edm::ParameterSet>("size").getParameter<int32_t>(EDM_STRINGIZE(ALPAKA_ACCELERATOR_NAMESPACE))),
-      size3_(iConfig.getParameter<edm::ParameterSet>("size").getParameter<int32_t>(EDM_STRINGIZE(ALPAKA_ACCELERATOR_NAMESPACE))),
-      buffers_(sistrip::FED_ID_MAX),
+    : buffers_(sistrip::FED_ID_MAX),
       raw_(sistrip::FED_ID_MAX)
       {
         inputToken_ = consumes(iConfig.getParameter<edm::InputTag>("ProductLabel"));
         conditionsToken_ = esConsumes(edm::ESInputTag{"", iConfig.getParameter<std::string>("ConditionsLabel")});
-        devicePutToken_ = produces();
-        devicePutTokenMulti2_ = produces(iConfig.getParameter<std::string>("productInstanceName"));
-        devicePutTokenMulti3_ = produces(iConfig.getParameter<std::string>("productInstanceName"));
+        outputToken_ = produces();
+        // devicePutTokenMulti2_ = produces(iConfig.getParameter<std::string>("productInstanceName"));
+        // devicePutTokenMulti3_ = produces(iConfig.getParameter<std::string>("productInstanceName"));
         }
+
+  void SiStripRawToCluster::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+    edm::ParameterSetDescription desc;
+    // TODO: add doc 
+    desc.add("ProductLabel", edm::InputTag("rawDataCollector"));
+    desc.add<std::string>("ConditionsLabel", "");
+    // Call the fillDescriptions from the clusterizer algo factory, 
+    // and add the Clusterizer settings to the clusterizer class
+    edm::ParameterSetDescription clusterizer;
+    StripClusterizerAlgorithmFactory::fillDescriptions(clusterizer);
+    desc.add("Clusterizer", clusterizer);
+
+    // Is this part relevant in any way?
+    // edm::ParameterSetDescription psetSize;
+    // psetSize.add<int32_t>("alpaka_serial_sync");
+    // psetSize.add<int32_t>("alpaka_cuda_async");
+    // psetSize.add<int32_t>("alpaka_rocm_async");
+    // desc.add("size", psetSize);
+
+    descriptions.addWithDefaultLabel(desc);
+  }
+      
+  void SiStripRawToCluster::produce(device::Event& iEvent, device::EventSetup const& iSetup) override {
+    [[maybe_unused]] auto inpData = iEvent.getHandle(inputToken_);
+    [[maybe_unused]] auto const& esData = iSetup.getData(conditionsToken_);
+
+    auto deviceProduct = std::make_unique<portabletest::TestDeviceCollection>(size_, iEvent.queue());
+    auto deviceProductMulti2 = std::make_unique<portabletest::TestDeviceMultiCollection2>(
+        portabletest::TestDeviceMultiCollection2::SizesArray{{size_, size2_}}, iEvent.queue());
+    auto deviceProductMulti3 = std::make_unique<portabletest::TestDeviceMultiCollection3>(
+        portabletest::TestDeviceMultiCollection3::SizesArray{{size_, size2_, size3_}}, iEvent.queue());
+
+    // run the algorithm, potentially asynchronously
+    algo_.fill(iEvent.queue(), *deviceProduct);
+    algo_.fillMulti2(iEvent.queue(), *deviceProductMulti2);
+    algo_.fillMulti3(iEvent.queue(), *deviceProductMulti3);
+
+    iEvent.put(outputToken_, std::move(deviceProduct));
+    iEvent.put(devicePutTokenMulti2_, std::move(deviceProductMulti2));
+    iEvent.put(devicePutTokenMulti3_, std::move(deviceProductMulti3));
+  }
 
   void SiStripRawToCluster::run(const FEDRawDataCollection& rawColl, const SiStripClusterizerConditions& conditions) {
   // loop over good det in cabling
@@ -180,7 +175,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       }
     }  // end loop over conn
   }
-
 
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
