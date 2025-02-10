@@ -17,7 +17,40 @@
 #include "EventFilter/SiStripRawToDigi/interface/SiStripFEDBuffer.h"
 
 #include "RecoLocalTracker/SiStripClusterizer/interface/StripClusterizerAlgorithmFactory.h"
+#include "CalibFormats/SiStripObjects/interface/SiStripClusterizerConditions.h"
 
+namespace ALPAKA_ACCELERATOR_NAMESPACE {
+  // This makes the function resolvable only from this file
+  namespace {
+    std::unique_ptr<sistrip::FEDBuffer> fillBuffer(int fedId, const FEDRawData& rawData) {
+      std::unique_ptr<sistrip::FEDBuffer> buffer;
+
+      // Check on FEDRawData pointer
+      const auto st_buffer = sistrip::preconstructCheckFEDBuffer(rawData);
+      if UNLIKELY (sistrip::FEDBufferStatusCode::SUCCESS != st_buffer) {
+        LogDebug(sistrip::mlRawToCluster_) << "[ClustersFromRawProducer::" << __func__ << "]" << st_buffer << " for FED ID " << fedId;
+        return buffer;
+      }
+      
+      buffer = std::make_unique<sistrip::FEDBuffer>(rawData);
+      const auto st_chan = buffer->findChannels();
+      
+      if UNLIKELY (sistrip::FEDBufferStatusCode::SUCCESS != st_chan) {
+        LogDebug(sistrip::mlRawToCluster_) << "Exception caught when creating FEDBuffer object for FED " << fedId << ": " << st_chan;
+        buffer.reset();
+        return buffer;
+      }
+      
+      if UNLIKELY (!buffer->doChecks(false)) {
+        LogDebug(sistrip::mlRawToCluster_) << "Exception caught when creating FEDBuffer object for FED " << fedId << ": FED Buffer check fails";
+        buffer.reset();
+        return buffer;
+      }
+
+      return buffer;
+    }
+  }
+}
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   /**
@@ -94,6 +127,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     // implementation of the algorithm
     TestAlgo algo_;
+
+    void run(const FEDRawDataCollection& rawColl, const SiStripClusterizerConditions& conditions);
+    void fill(uint32_t idet, const FEDRawDataCollection& rawColl, const SiStripClusterizerConditions& conditions);
+  
   };
 
   SiStripRawToCluster::SiStripRawToCluster(const edm::ParameterSet& iConfig)
@@ -109,6 +146,42 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         devicePutTokenMulti2_ = produces(iConfig.getParameter<std::string>("productInstanceName"));
         devicePutTokenMulti3_ = produces(iConfig.getParameter<std::string>("productInstanceName"));
         }
+
+  void SiStripRawToCluster::run(const FEDRawDataCollection& rawColl, const SiStripClusterizerConditions& conditions) {
+  // loop over good det in cabling
+    for (auto idet : conditions.allDetIds()) {
+    fill(idet, rawColl, conditions);
+    }  // end loop over dets
+  }
+
+  void SiStripRawToCluster::fill(uint32_t idet, const FEDRawDataCollection& rawColl, const SiStripClusterizerConditions& conditions) {
+    auto const& det = conditions.findDetId(idet);
+    if (!det.valid())
+    return;
+
+    // Loop over apv-pairs of det
+    for (auto const conn : conditions.currentConnection(det)) {
+      if UNLIKELY (!conn)
+      continue;
+
+      const uint16_t fedId = conn->fedId();
+
+      // If fed id is null or connection is invalid continue
+      if UNLIKELY (!fedId || !conn->isConnected()) {
+      continue;
+      }
+
+      // If Fed hasnt already been initialised, extract data and initialise
+      sistrip::FEDBuffer* buffer = buffers_[fedId].get();
+      if (!buffer) {
+      const FEDRawData& rawData = rawColl.FEDData(fedId);
+      raw_[fedId] = &rawData;
+      buffers_[fedId] = fillBuffer(fedId, rawData);
+      }
+    }  // end loop over conn
+  }
+
+
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
