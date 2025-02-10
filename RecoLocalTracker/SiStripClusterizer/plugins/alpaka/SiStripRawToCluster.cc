@@ -16,6 +16,9 @@
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
 #include "EventFilter/SiStripRawToDigi/interface/SiStripFEDBuffer.h"
 
+#include "RecoLocalTracker/SiStripClusterizer/interface/StripClusterizerAlgorithmFactory.h"
+
+
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   /**
    * This class demonstrates a stream EDProducer that
@@ -31,15 +34,23 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
-      desc.add<edm::InputTag>("source");
-      desc.add("eventSetupSource", edm::ESInputTag{});
-      desc.add<std::string>("productInstanceName", "");
+      // desc.add<edm::InputTag>("source");
+      // desc.add("eventSetupSource", edm::ESInputTag{});
+      // desc.add<std::string>("productInstanceName", "");
 
-      edm::ParameterSetDescription psetSize;
-      psetSize.add<int32_t>("alpaka_serial_sync");
-      psetSize.add<int32_t>("alpaka_cuda_async");
-      psetSize.add<int32_t>("alpaka_rocm_async");
-      desc.add("size", psetSize);
+      desc.add("ProductLabel", edm::InputTag("rawDataCollector"));
+      desc.add<std::string>("ConditionsLabel", "");
+      // Call the fillDescriptions from the clusterizer algo factory, 
+      // and add the Clusterizer settings to the clusterizer class
+      edm::ParameterSetDescription clusterizer;
+      StripClusterizerAlgorithmFactory::fillDescriptions(clusterizer);
+      desc.add("Clusterizer", clusterizer);
+
+      // edm::ParameterSetDescription psetSize;
+      // psetSize.add<int32_t>("alpaka_serial_sync");
+      // psetSize.add<int32_t>("alpaka_cuda_async");
+      // psetSize.add<int32_t>("alpaka_rocm_async");
+      // desc.add("size", psetSize);
 
       descriptions.addWithDefaultLabel(desc);
     }

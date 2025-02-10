@@ -16,7 +16,6 @@
   <use name="alpaka"/>
   <!-- The dependency on "DataFormats/PortableTestObjects" automatically expands to include
   the host-only library (if it exists) and the corresponding Alpaka libraries (if they exist)
-  <use name="RecoLocalTracker/SiStripClusterizer"/>
   <use name="RecoLocalTracker/SiStripZeroSuppression"/>
   <use name="RecoTracker/PixelLowPtUtilities"/>
   <use name="DataFormats/Portable"/>
@@ -31,6 +30,7 @@
   <use name="HeterogeneousCore/AlpakaTest"/>
   <!--  -->
   <use name="EventFilter/SiStripRawToDigi"/>
+  <use name="RecoLocalTracker/SiStripClusterizer"/>
   <!-- <use name="CalibFormats/SiStripObjects"/> -->
   <!-- <use name="CalibTracker/SiStripCommon"/> -->
   <flags ALPAKA_BACKENDS="1"/>
