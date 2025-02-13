@@ -9,6 +9,8 @@
 <use name="clhep"/>
 <use name="boost"/>
 <use name="boost_serialization"/>
+<!-- <use name="HeterogeneousCore/AlpakaInterface"/> -->
+<flags ALPAKA_BACKENDS="!serial"/>
 <export>
   <lib name="1"/>
 </export>
