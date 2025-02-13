@@ -3,8 +3,8 @@
 #include <alpaka/alpaka.hpp>
 
 #include "DataFormats/SiStripClusterSoA/interface/SiStripClustersSoA.h"
-#include "DataFormats/SiStripClusterSoA/interface/SiStripClustersHostCollection.h"
-#include "DataFormats/SiStripClusterSoA/interface/alpaka/SiStripClustersDeviceCollection.h"
+#include "DataFormats/SiStripClusterSoA/interface/SiStripClustersHost.h"
+#include "DataFormats/SiStripClusterSoA/interface/alpaka/SiStripClustersDevice.h"
 
 #include "FWCore/Utilities/interface/stringize.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
@@ -12,9 +12,10 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
 
-#include "Clusters_test.h"
+#include "TestSiStripClustersDevice.h"
 
 using namespace ALPAKA_ACCELERATOR_NAMESPACE;
+// using namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip;
 
 int main() {
   // Get the list of devices on the current platform
@@ -32,12 +33,12 @@ int main() {
     {
       // Instantiate tracks on device. PortableDeviceCollection allocates
       // SoA on device automatically.
-      ALPAKA_ACCELERATOR_NAMESPACE::sistrip::SiStripClustersDeviceCollection clusters_d(100, queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
-      testClusterSoA::runKernels(clusters_d.view(), queue);
+      ALPAKA_ACCELERATOR_NAMESPACE::sistrip::SiStripClustersDevice clusters_d(100, queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
+      testSiStripClusterSoA::runKernels(clusters_d.view(), queue);
       
       // Instantate tracks on host. This is where the data will be
       // copied to from device.
-      ALPAKA_ACCELERATOR_NAMESPACE::sistrip::SiStripClustersHostCollection clusters_h(clusters_d.view().metadata().size(), queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
+      ALPAKA_ACCELERATOR_NAMESPACE::sistrip::SiStripClustersHost clusters_h(clusters_d.view().metadata().size(), queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
       std::cout << "clusters_h.view().metadata().size() = " << clusters_h.view().metadata().size() << std::endl;
       alpaka::memcpy(queue, clusters_h.buffer(), clusters_d.const_buffer());
       alpaka::wait(queue);

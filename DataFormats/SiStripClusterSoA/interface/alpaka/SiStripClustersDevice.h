@@ -1,8 +1,8 @@
-#ifndef DataFormats_SiStripClusterSoA_interface_alpaka_SiStripClustersDeviceCollection_h
-#define DataFormats_SiStripClusterSoA_interface_alpaka_SiStripClustersDeviceCollection_h
+#ifndef DataFormats_SiStripClusterSoA_interface_alpaka_SiStripClustersDevice_h
+#define DataFormats_SiStripClusterSoA_interface_alpaka_SiStripClustersDevice_h
 
 #include "DataFormats/Portable/interface/alpaka/PortableCollection.h"
-#include "DataFormats/SiStripClusterSoA/interface/SiStripClustersHostCollection.h"
+#include "DataFormats/SiStripClusterSoA/interface/SiStripClustersHost.h"
 #include "DataFormats/SiStripClusterSoA/interface/SiStripClustersSoA.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 
@@ -15,16 +15,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using namespace ::sistrip;
 
     // SoA with SiStripClusters fields in host memory
-    using ::sistrip::SiStripClustersHostCollection;
+    using ::sistrip::SiStripClustersHost;
 
     // SoA with SiStripClusters fields in device global memory
-    using SiStripClustersDeviceCollection = PortableCollection<SiStripClustersSoA>;
+    using SiStripClustersDevice = PortableCollection<SiStripClustersSoA>;
 
   }  // namespace sistrip
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 // check that the sistrip device collection for the host device is the same as the sistrip host collection
-ASSERT_DEVICE_MATCHES_HOST_COLLECTION(sistrip::SiStripClustersDeviceCollection, sistrip::SiStripClustersHostCollection);
+ASSERT_DEVICE_MATCHES_HOST_COLLECTION(sistrip::SiStripClustersDevice, sistrip::SiStripClustersHost);
 
-#endif  // DataFormats_SiStripClusterSoA_interface_alpaka_SiStripClustersDeviceCollection_h
+#endif  // DataFormats_SiStripClusterSoA_interface_alpaka_SiStripClustersDevice_h

@@ -1,17 +1,16 @@
 // A minimal test to ensure that
-//   - portabletest::TestSoA can be compiled
-//   - portabletest::TestHostCollection can be allocated
-//   - portabletest::TestHostCollection can be erased
+//   - sistrip::SiStripClustersSoA, sistrip::SiStripClustersHost can be compiled
+//   - sistrip::SiStripClustersSoA can be allocated, modified and erased (on host)
 //   - view-based element access works
 
-#include "DataFormats/SiStripClusterSoA/interface/SiStripClustersHostCollection.h"
+#include "DataFormats/SiStripClusterSoA/interface/SiStripClustersHost.h"
 #include "DataFormats/SiStripClusterSoA/interface/SiStripClustersSoA.h"
 // #include "HeterogeneousCore/AlpakaInterface/interface/host.h"
 
 
 int main() {
   constexpr const int size = 42;
-  sistrip::SiStripClustersHostCollection collection(size, cms::alpakatools::host());
+  sistrip::SiStripClustersHost collection(size, cms::alpakatools::host());
   // ALPAKA_ACCELERATOR_NAMESPACE::sistrip::SiStripClustersDeviceCollection collection(size, cms::alpakatools::host());
 
   // const sistrip::Matrix matrix{{1, 2, 3, 4, 5, 6}, {2, 4, 6, 8, 10, 12}, {3, 6, 9, 12, 15, 18}};

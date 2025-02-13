@@ -1,16 +1,16 @@
 #include <alpaka/alpaka.hpp>
 
 #include "DataFormats/SiStripClusterSoA/interface/SiStripClustersSoA.h"
-#include "DataFormats/SiStripClusterSoA/interface/SiStripClustersHostCollection.h"
-#include "DataFormats/SiStripClusterSoA/interface/alpaka/SiStripClustersDeviceCollection.h"
+#include "DataFormats/SiStripClusterSoA/interface/SiStripClustersHost.h"
+#include "DataFormats/SiStripClusterSoA/interface/alpaka/SiStripClustersDevice.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
 #include "HeterogeneousCore/AlpakaInterface/interface/workdivision.h"
 
-#include "Clusters_test.h"
+#include "TestSiStripClustersDevice.h"
 
 using namespace alpaka;
 
-namespace ALPAKA_ACCELERATOR_NAMESPACE::testClusterSoA {
+namespace ALPAKA_ACCELERATOR_NAMESPACE::testSiStripClusterSoA {
   using namespace sistrip;
   
   class TestFillKernel {
@@ -59,4 +59,4 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::testClusterSoA {
     alpaka::exec<Acc1D>(queue, workDiv, TestVerifyKernel{}, clust_view);
   }
 
-}  // namespace ALPAKA_ACCELERATOR_NAMESPACE::testClusterSoA
+}  // namespace ALPAKA_ACCELERATOR_NAMESPACE::testSiStripClusterSoA
