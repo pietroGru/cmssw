@@ -8,21 +8,21 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-    namespace sistrip {
-        // make the names from the top-level sistrip namespace visible for unqualified lookup
-        // inside the ALPAKA_ACCELERATOR_NAMESPACE::sistrip namespace
-        using namespace ::sistrip;
+    // namespace sistrip {
+    //     // make the names from the top-level sistrip namespace visible for unqualified lookup
+    //     // inside the ALPAKA_ACCELERATOR_NAMESPACE::sistrip namespace
+    //     using namespace ::sistrip;
 
-        // SoA with SiStripClusterizerConditions fields in host memory
-        using ::sistrip::SiStripClusterizerConditionsHost;
+    //     // SoA with SiStripClusterizerConditions fields in host memory
+    //     using ::SiStripClusterizerConditionsHost;
 
-        // SoA with SiStripClusterizerConditions fields in device global memory
-        using SiStripClusterizerConditionsDevice = PortableCollection<SiStripClusterizerConditionsSoA>;
-    }
+    //     // SoA with SiStripClusterizerConditions fields in device global memory
+    // }
+    using SiStripClusterizerConditionsDevice = PortableCollection<SiStripClusterizerConditionsSoA>;
 }
 
 // check that the sistrip device collection for the host device is the same as the sistrip host collection
-ASSERT_DEVICE_MATCHES_HOST_COLLECTION(sistrip::SiStripClusterizerConditionsDevice, sistrip::SiStripClusterizerConditionsHost);
+ASSERT_DEVICE_MATCHES_HOST_COLLECTION(SiStripClusterizerConditionsDevice, SiStripClusterizerConditionsHost);
 
 
 #endif // CondFormats_SiStripObjects_interface_alpaka_SiStripClusterizerConditionsDevice_h

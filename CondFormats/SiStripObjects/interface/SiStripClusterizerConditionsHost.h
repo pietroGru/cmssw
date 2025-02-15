@@ -3,11 +3,9 @@
 
 #include "CondFormats/SiStripObjects/interface/SiStripClusterizerConditionsSoA.h"
 #include "DataFormats/Portable/interface/PortableHostCollection.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/config.h"
-#include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
+// #include "HeterogeneousCore/AlpakaInterface/interface/config.h"
+// #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
 
-namespace sistrip {
-    using SiStripClusterizerConditionsHost = PortableHostCollection<SiStripClusterizerConditionsSoA>;
-}
+using SiStripClusterizerConditionsHost = PortableHostCollection<SiStripClusterizerConditionsSoA>;
 
 #endif // CondFormats_SiStripObjects_interface_SiStripClusterizerConditionsHost_h

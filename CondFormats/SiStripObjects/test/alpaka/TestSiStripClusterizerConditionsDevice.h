@@ -6,7 +6,7 @@
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE::testConditionsSoA {
 
-  void runKernels(sistrip::SiStripClusterizerConditionsView clust_view, Queue& queue);
+  void runKernels(SiStripClusterizerConditionsView clust_view, Queue& queue);
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::testConditionsSoA
 

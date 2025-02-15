@@ -18,9 +18,9 @@
 </bin>
 
 <bin name="SiStripClusterizerConditionsSoA" file="TestSiStripClusterizerConditionsSoA.cc">
-  <use name="HeterogeneousCore/AlpakaInterface"/>
 </bin>
-<bin name="SiStripClusterizerConditionsSoA_device" file="alpaka/TestSiStripClusterizerConditionsDevice.cc, alpaka/TestSiStripClusterizerConditionsDevice.dev.cc">
+
+<bin name="SiStripClusterizerConditionsSoA_alpaka" file="alpaka/TestSiStripClusterizerConditionsDevice.cc, alpaka/TestSiStripClusterizerConditionsDevice.dev.cc">
   <use name="alpaka"/>
   <use name="HeterogeneousCore/AlpakaInterface"/>
   <use name="CondFormats/SiStripObjects" source_only="1"/>

@@ -32,12 +32,12 @@ int main() {
     {
       // Instantiate tracks on device. PortableDeviceCollection allocates
       // SoA on device automatically.
-      ALPAKA_ACCELERATOR_NAMESPACE::sistrip::SiStripClusterizerConditionsDevice conditions_d(100, queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
+      SiStripClusterizerConditionsDevice conditions_d(100, queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
       testConditionsSoA::runKernels(conditions_d.view(), queue);
       
       // Instantate tracks on host. This is where the data will be
       // copied to from device.
-      ALPAKA_ACCELERATOR_NAMESPACE::sistrip::SiStripClusterizerConditionsHost conditions_h(conditions_d.view().metadata().size(), queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
+      SiStripClusterizerConditionsHost conditions_h(conditions_d.view().metadata().size(), queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
       std::cout << "conditions_h.view().metadata().size() = " << conditions_h.view().metadata().size() << std::endl;
       alpaka::memcpy(queue, conditions_h.buffer(), conditions_d.const_buffer());
       alpaka::wait(queue);

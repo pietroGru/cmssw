@@ -9,7 +9,8 @@
 <use name="clhep"/>
 <use name="boost"/>
 <use name="boost_serialization"/>
-<!-- <use name="HeterogeneousCore/AlpakaInterface"/> -->
+<use name="DataFormats/Portable"/>
+<use name="DataFormats/SoATemplate"/>
 <flags ALPAKA_BACKENDS="!serial"/>
 <export>
   <lib name="1"/>

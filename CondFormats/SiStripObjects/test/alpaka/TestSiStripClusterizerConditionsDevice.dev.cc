@@ -11,9 +11,7 @@
 
 using namespace alpaka;
 
-namespace ALPAKA_ACCELERATOR_NAMESPACE::testConditionsSoA {
-  using namespace sistrip;
-  
+namespace ALPAKA_ACCELERATOR_NAMESPACE::testConditionsSoA {  
   class TestFillKernel {
   public:
     template <typename TAcc, typename = std::enable_if_t<isAccelerator<TAcc>>>
