@@ -8,16 +8,8 @@
 #include "HeterogeneousCore/AlpakaInterface/interface/memory.h"
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
-    // namespace sistrip {
-    //     // make the names from the top-level sistrip namespace visible for unqualified lookup
-    //     // inside the ALPAKA_ACCELERATOR_NAMESPACE::sistrip namespace
-    //     using namespace ::sistrip;
-
-    //     // SoA with SiStripClusterizerConditions fields in host memory
-    //     using ::SiStripClusterizerConditionsHost;
-
-    //     // SoA with SiStripClusterizerConditions fields in device global memory
-    // }
+    // PortableCollection-based model
+    using SiStripClusterizerConditionsHost = ::SiStripClusterizerConditionsHost;
     using SiStripClusterizerConditionsDevice = PortableCollection<SiStripClusterizerConditionsSoA>;
 }
 

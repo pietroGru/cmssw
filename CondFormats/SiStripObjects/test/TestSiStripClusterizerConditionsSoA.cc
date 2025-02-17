@@ -20,13 +20,18 @@ int main() {
 
   auto view = collection.view();
   for (uint32_t j = 0; j < size; j++) {
-    view[j] = {
-       (uint16_t)(j%65536),         // noise_()
-       (float)(j*1.0),              // invthick_()
-       (uint32_t)(j),               // detID_()
-       (uint16_t)(j%65536),         // iPair_()
-       (float)(j*-1.0f),            // gain_()
-    };
+    view[j].noise_() = (uint16_t)(j%65536);
+    view[j].invthick_() = (float)(j*1.0);
+    view[j].detID_() = (uint32_t)(j);
+    view[j].iPair_() = (uint16_t)(j%65536);
+    view[j].gain_() = (float)(j*-1.0f);
+    // view[j] = {
+    //    (uint16_t)(j%65536),         // noise_()
+    //    (float)(j*1.0),              // invthick_()
+    //    (uint32_t)(j),               // detID_()
+    //    (uint16_t)(j%65536),         // iPair_()
+    //    (float)(j*-1.0f),            // gain_()
+    // };
   }
 
   for (uint32_t j = 0; j < size; j++) {
