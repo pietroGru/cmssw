@@ -32,7 +32,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::testMappingSoA {
     ALPAKA_FN_ACC void operator()(TAcc const& acc, SiStripMappingConstView view) const {
       const uint8_t arr[10] = {0,1,2,3,4,5,6,7,8,9};
       for (uint32_t j : cms::alpakatools::uniform_elements(acc, view.metadata().size())) {
-        ALPAKA_ASSERT_ACC(view[j].input() == &arr[j%10]);
+        ALPAKA_ASSERT_ACC(view[j].input() - arr == j % 10);
         ALPAKA_ASSERT_ACC(view[j].inoff() == (size_t)j);
         ALPAKA_ASSERT_ACC(view[j].offset() == (size_t)j);
         ALPAKA_ASSERT_ACC(view[j].length() == (uint16_t)(j%65536));
