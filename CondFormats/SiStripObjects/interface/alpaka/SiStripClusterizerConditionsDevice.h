@@ -10,7 +10,7 @@
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // PortableCollection-based model
     using SiStripClusterizerConditionsHost = ::SiStripClusterizerConditionsHost;
-    using SiStripClusterizerConditionsDevice = PortableCollection<SiStripClusterizerConditionsSoA>;
+    using SiStripClusterizerConditionsDevice = PortableMultiCollection<Device, SiStripClusterizerConditionsDetToFedsSoA, SiStripClusterizerConditionsDataSoA>;
 }
 
 // check that the sistrip device collection for the host device is the same as the sistrip host collection

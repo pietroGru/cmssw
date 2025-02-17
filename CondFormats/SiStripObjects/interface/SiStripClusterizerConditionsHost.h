@@ -4,6 +4,6 @@
 #include "CondFormats/SiStripObjects/interface/SiStripClusterizerConditionsSoA.h"
 #include "DataFormats/Portable/interface/PortableHostCollection.h"
 
-using SiStripClusterizerConditionsHost = PortableHostCollection<SiStripClusterizerConditionsSoA>;
+using SiStripClusterizerConditionsHost = PortableHostMultiCollection<SiStripClusterizerConditionsDetToFedsSoA, SiStripClusterizerConditionsDataSoA>;
 
 #endif // CondFormats_SiStripObjects_interface_SiStripClusterizerConditionsHost_h
