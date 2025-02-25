@@ -64,6 +64,7 @@ __global__ static void unpackChannels(const ChannelLocsView *chanlocs,
           stripId[aoff] = stripIndex++;
           channel[aoff] = chan;
           alldata[aoff++] = data[(choff++) ^ 7];
+          auto obj = alldata[aoff++];
         }
       }
     }  // choff < end

@@ -36,6 +36,7 @@ namespace stripgpu {
                                                const std::vector<std::unique_ptr<sistrip::FEDBuffer>>& buffers,
                                                const SiStripClusterizerConditionsGPU& conditions,
                                                cudaStream_t stream) {
+    //@pietroGru Compute Total Memory Needed
     size_t totalSize{0};
     for (const auto& buff : buffers) {
       if (buff != nullptr) {
@@ -43,16 +44,18 @@ namespace stripgpu {
       }
     }
 
+    //@pietroGru Allocate Host & Device Memory for Raw Data
     auto fedRawDataHost = cms::cuda::make_host_unique<uint8_t[]>(totalSize, stream);
     auto fedRawDataGPU = cms::cuda::make_device_unique<uint8_t[]>(totalSize, stream);
 
+    //@pietroGru Prepare FED Offsets and Indexing
     size_t off = 0;
     fedRawDataOffsets_.clear();
     fedIndex_.clear();
     fedIndex_.resize(sistrip::NUMBER_OF_FEDS, stripgpu::invalidFed);
 
+    //@pietroGru Copy FED Data to Host Memory
     sistrip::FEDReadoutMode mode = sistrip::READOUT_MODE_INVALID;
-
     for (size_t fedi = 0; fedi < buffers.size(); ++fedi) {
       auto& buff = buffers[fedi];
       if (buff != nullptr) {
@@ -71,20 +74,30 @@ namespace stripgpu {
         }
       }
     }
-    // send rawdata to GPU
+
+    //@pietroGru Copy FED Data to the GPU (send rawdata to GPU)
+    //           copy the entire block of raw FED data from host. At this point, the data is still "raw", meaning it hasn’t been unpacked yet. It's just stored in GPU memory.
     cms::cuda::copyAsync(fedRawDataGPU, fedRawDataHost, totalSize, stream);
 
+    //@pietroGru Verify Readout Mode & Determine Header Length
+    //            preparing the data for the unpack - THIS part essentially generates the A-B map between
+    //            A - the raw FED data (a bug chunk of bytes which were copied to the GPU in the previous line)
+    //            B - the actual strip detector elements
     const auto& detmap = conditions.detToFeds();
     if ((mode != sistrip::READOUT_MODE_ZERO_SUPPRESSED) && (mode != sistrip::READOUT_MODE_ZERO_SUPPRESSED_LITE10)) {
       throw cms::Exception("[SiStripRawToClusterGPUKernel] unsupported readout mode ") << mode;
     }
     const uint16_t headerlen = mode == sistrip::READOUT_MODE_ZERO_SUPPRESSED ? 7 : 2;
-    size_t offset = 0;
+    
+    //@pietroGru Allocate Channel Locations & Input Data Pointers
+    //@pietroGru prepare the pointers for ChannelLocs and the memory content for chanlocs payload 
     auto chanlocs = std::make_unique<ChannelLocs>(detmap.size(), stream);
     auto inputGPU = cms::cuda::make_host_unique<const uint8_t*[]>(chanlocs->size(), stream);
-
-    // iterate over the detector in DetID/APVPair order
-    // mapping out where the data are
+    
+    //@pietroGru Map Detector Channels to FED Data, by expanding the gpuConditions
+    //           iterate over the detector in DetID/APVPair order
+    //           mapping out where the data are
+    size_t offset = 0;
     for (size_t i = 0; i < detmap.size(); ++i) {
       const auto& detp = detmap[i];
       const auto fedId = detp.fedID();
@@ -105,7 +118,9 @@ namespace stripgpu {
           off += headerlen;
         }
 
+        //@pietroGru saving the channel location (association between detector channels and fed id) in chanlocs
         chanlocs->setChannelLoc(i, channel.data(), off, offset, len, fedId, fedCh, detp.detID());
+        //@pietroGru calculate the correct pointer inside the fedRawDataGPU where the fed's channel data begins
         inputGPU[i] = fedRawDataGPU.get() + fedRawDataOffsets_[fedi] + (channel.data() - rawdata[fedId]->data());
         offset += len;
 
@@ -115,18 +130,28 @@ namespace stripgpu {
       }
     }
 
+    //@pietroGru Prepare GPU Data Structures
+    //           the main catch here is that I have chanlocs and inputGPU which were prepared on host
     const auto n_strips = offset;
-
+    //@pietroGru Create a view pointer (which here is a plain struct*) to access the StripData content
     sst_data_d_ = cms::cuda::make_host_unique<StripDataView>(stream);
     sst_data_d_->nStrips = n_strips;
 
+    //@pietroGru same for the ChannelLocsGPU
     chanlocsGPU_ = std::make_unique<ChannelLocsGPU>(detmap.size(), stream);
+    //@pietroGru MOVE raw data to the GPU
     chanlocsGPU_->setVals(chanlocs.get(), std::move(inputGPU), stream);
-
+    
+    //@pietroGru StripDataGPU is a plain class to store the data pointers in gpu memory space
     stripdata_ = std::make_unique<StripDataGPU>(n_strips, stream);
 
+    //@pietroGru Fetch Calibration Conditions
+    //           fetches condition data (e.g., calibration constants, noise thresholds, etc.)
+    //           and make them available on the GPU
     const auto& condGPU = conditions.getGPUProductAsync(stream);
-
+    
+    //@pietroGru Launch the GPU Kernel
+    //           the view for the conditions goes into theunpackChannelsGPU cuda-kernel
     unpackChannelsGPU(condGPU.deviceView(), stream);
 
 #ifdef GPU_CHECK
@@ -165,13 +190,23 @@ namespace stripgpu {
     outdata.reset(nullptr);
 #endif
 
+    //@pietroGru not sure, most likely at this point of the queue, the kernel already unpacked the strips
+    //           then I can free the memory associated with the FED raw data (hence the nullptr set)
     fedRawDataGPU.reset();
+    
+    //@pietroGru basically fill the view for the data in the host and then copy to the gpu memory space
     allocateSSTDataGPU(n_strips, stream);
+
+    //@pietroGru seeding setup means set the noise_i*seedThreshold mask for all the strips
+    //           (it masks strips with a meaningful hits) in setSeedStripsGPU. Also in setNCSeedStripsGPU it masks out the not connected strips
     setSeedStripsNCIndexGPU(condGPU.deviceView(), stream);
 
+    //@pietroGru This just prepare the SiStripClustersSoA result object and pushed this in the stream
     clusters_d_ = SiStripClustersSoADevice(kMaxSeedStrips, stream);
+    //@pietroGru this function runs the actual clustering algorithm
     findClusterGPU(condGPU.deviceView(), stream);
 
+    //@pietroGru calling the reset of the smart pointer frees the memory allocated for the stripdata_ objects
     stripdata_.reset();
   }
 

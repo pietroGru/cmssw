@@ -6,7 +6,12 @@
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE::testConditionsSoA {
 
-  void runKernels(SiStripClusterizerConditionsDetToFedsView detToFedsView, SiStripClusterizerConditionsDataView dataView, Queue& queue);
+  void runKernels(
+    SiStripClusterizerConditionsDetToFedsView DetToFedsView,
+    SiStripClusterizerConditionsData_fedchView Data_fedchView,
+    SiStripClusterizerConditionsData_stripView Data_stripView,
+    SiStripClusterizerConditionsData_apvView Data_apvView,
+    Queue& queue);
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::testConditionsSoA
 

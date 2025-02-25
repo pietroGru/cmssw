@@ -32,16 +32,26 @@ int main() {
     {
       // Instantiate tracks on device. PortableDeviceCollection allocates
       // SoA on device automatically.
-      int const sizeA = 10;
-      int const sizeB = 100;
-      SiStripClusterizerConditionsDevice conditions_d({{sizeA, sizeB}}, queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
-      testConditionsSoA::runKernels(conditions_d.view(), conditions_d.view<SiStripClusterizerConditionsDataSoA>(), queue);
+      int const DetToFedsSoA_size = 10;
+      int const Data_fedch_SoA_size = 50;
+      int const Data_strip_SoA_size = 100;
+      int const Data_apv_SoA_size = 200;
+      SiStripClusterizerConditionsDevice conditions_d({{DetToFedsSoA_size, Data_fedch_SoA_size, Data_strip_SoA_size, Data_apv_SoA_size}}, queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
+      testConditionsSoA::runKernels(
+        conditions_d.view(),
+        conditions_d.view<SiStripClusterizerConditionsData_fedchSoA>(),
+        conditions_d.view<SiStripClusterizerConditionsData_stripSoA>(),
+        conditions_d.view<SiStripClusterizerConditionsData_apvSoA>(),
+        queue);
 
       // Instantate tracks on host. This is where the data will be
       // copied to from device.
-      int const size1 = conditions_d.view().metadata().size();
-      int const size2 = conditions_d.view<SiStripClusterizerConditionsDataSoA>().metadata().size();
-      SiStripClusterizerConditionsHost conditions_h({{size1, size2}}, queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
+      int const DetToFedsSoA_sizeFromMeta = conditions_d.view().metadata().size();
+      int const Data_fedch_SoA_sizeFromMeta = conditions_d.view<SiStripClusterizerConditionsData_fedchSoA>().metadata().size();
+      int const Data_strip_SoA_sizeFromMeta = conditions_d.view<SiStripClusterizerConditionsData_stripSoA>().metadata().size();
+      int const Data_apv_SoA_sizeFromMeta = conditions_d.view<SiStripClusterizerConditionsData_apvSoA>().metadata().size();
+
+      SiStripClusterizerConditionsHost conditions_h({{DetToFedsSoA_sizeFromMeta, Data_fedch_SoA_sizeFromMeta, Data_strip_SoA_sizeFromMeta, Data_apv_SoA_sizeFromMeta}}, queue);    // (the namespace specification is to avoid confusion with the non-alpaka sistrip namespace)
       std::cout << "conditions_h.view().metadata().size() = " << conditions_h.view().metadata().size() << std::endl;
       alpaka::memcpy(queue, conditions_h.buffer(), conditions_d.const_buffer());
       alpaka::wait(queue);

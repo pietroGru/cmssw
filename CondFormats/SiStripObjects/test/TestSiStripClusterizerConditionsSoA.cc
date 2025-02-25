@@ -8,46 +8,62 @@
 #include "CondFormats/SiStripObjects/interface/SiStripClusterizerConditionsSoA.h"
 
 int main() {
-  int const sizeA = 10;
-  int const sizeB = 100;
-  SiStripClusterizerConditionsHost collection({{sizeA, sizeB}}, cms::alpakatools::host());
-  // ALPAKA_ACCELERATOR_NAMESPACE::sistrip::SiStripClustersDeviceCollection collection(size, cms::alpakatools::host());
+  // using SiStripClusterizerConditionsHost = PortableHostMultiCollection<SiStripClusterizerConditionsDetToFedsSoA, SiStripClusterizerConditionsData_fedch_SoA, SiStripClusterizerConditionsData_strip_SoA, SiStripClusterizerConditionsData_apv_SoA>;
+  int const DetToFedsSoA_size = 10;
+  int const Data_fedch_SoA_size = 50;
+  int const Data_strip_SoA_size = 100;
+  int const Data_apv_SoA_size = 200;
+  SiStripClusterizerConditionsHost collection({{DetToFedsSoA_size, Data_fedch_SoA_size, Data_strip_SoA_size, Data_apv_SoA_size}}, cms::alpakatools::host());
 
   collection.zeroInitialise();
 
-  // collection.view().nClusters() = 1.;
+  auto DetToFeds_view = collection.view();
+  auto Data_fedchSoA_view = collection.view<SiStripClusterizerConditionsData_fedchSoA>();
+  auto Data_stripSoA_view = collection.view<SiStripClusterizerConditionsData_stripSoA>();
+  auto Data_apvSoA_view = collection.view<SiStripClusterizerConditionsData_apvSoA>();
 
-  auto detToFedsView = collection.view();
-  for (uint32_t j = 0; j < sizeA; j++) {
-    detToFedsView[j].detid_() = j*2;
-    detToFedsView[j].ipair_() = (uint16_t)((j)%65536);;
-    detToFedsView[j].fedid_() = (uint16_t)((j+1)%65536);
-    detToFedsView[j].fedch_() = (uint8_t)(j%256);
+  for (uint32_t j = 0; j < DetToFedsSoA_size; j++) {
+    DetToFeds_view[j].detid_() = j*2;
+    DetToFeds_view[j].ipair_() = (uint16_t)((j)%65536);
+    DetToFeds_view[j].fedid_() = (uint16_t)((j+1)%65536);
+    DetToFeds_view[j].fedch_() = (uint8_t)(j%256);
   }
 
-  auto dataView = collection.view<SiStripClusterizerConditionsDataSoA>();
-  for (uint32_t j = 0; j < sizeB; j++) {
-    dataView[j].noise_() = (uint16_t)(j%65536);
-    dataView[j].invthick_() = (float)(j*1.0);
-    dataView[j].detID_() = (uint32_t)(j);
-    dataView[j].iPair_() = (uint16_t)(j%65536);
-    dataView[j].gain_() = (float)(j*-1.0f);
+  for (uint32_t j = 0; j < Data_fedch_SoA_size; j++) {
+    Data_fedchSoA_view[j].detID_() = (uint32_t)(j);
+    Data_fedchSoA_view[j].iPair_() = (uint16_t)(j%65536);
+    Data_fedchSoA_view[j].invthick_() = (float)(j*1.0);
   }
+
+  for (uint32_t j = 0; j < Data_strip_SoA_size; j++) {
+    Data_stripSoA_view[j].noise_() = (uint16_t)(j%65536);
+  }
+  
+  for (uint32_t j = 0; j < Data_apv_SoA_size; j++) {
+    Data_apvSoA_view[j].gain_() = (float)(j*-1.0f);
+  }
+
 
   // Assert 
-  for (uint32_t j = 0; j < sizeA; j++) {
-    assert(detToFedsView[j].detid_() == j*2);
-    assert(detToFedsView[j].ipair_() == (uint16_t)((j)%65536));
-    assert(detToFedsView[j].fedid_() == (uint16_t)((j+1)%65536));
-    assert(detToFedsView[j].fedch_() == (uint8_t)(j%256));
+  for (uint32_t j = 0; j < DetToFedsSoA_size; j++) {
+    assert(DetToFeds_view[j].detid_() == j*2);
+    assert(DetToFeds_view[j].ipair_() == (uint16_t)((j)%65536));
+    assert(DetToFeds_view[j].fedid_() == (uint16_t)((j+1)%65536));
+    assert(DetToFeds_view[j].fedch_() == (uint8_t)(j%256));
   }
-  for (uint32_t j = 0; j < sizeB; j++) {
-    assert(dataView[j].noise_() == (uint16_t)(j%65536));
-    assert(dataView[j].invthick_() == (float)(j*1.0));
-    assert(dataView[j].detID_() == (uint32_t)(j));
-    assert(dataView[j].iPair_() == (uint16_t)(j%65536));
-    assert(dataView[j].gain_() == (float)(j*-1.0f));
+  
+  for (uint32_t j = 0; j < Data_fedch_SoA_size; j++) {
+    assert(Data_fedchSoA_view[j].detID_() == (uint32_t)(j));
+    assert(Data_fedchSoA_view[j].iPair_() == (uint16_t)(j%65536));
+    assert(Data_fedchSoA_view[j].invthick_() == (float)(j*1.0));
   }
 
+  for (uint32_t j = 0; j < Data_strip_SoA_size; j++) {
+    assert(Data_stripSoA_view[j].noise_() == (uint16_t)(j%65536));
+  }
+  
+  for (uint32_t j = 0; j < Data_apv_SoA_size; j++) {
+    assert(Data_apvSoA_view[j].gain_() == (float)(j*-1.0f));
+  }
   return 0;
 }

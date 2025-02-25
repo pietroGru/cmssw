@@ -75,9 +75,10 @@ public:
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
-  void acquire(edm::Event const& ev,
-               edm::EventSetup const& es,
-               edm::WaitingTaskWithArenaHolder waitingTaskHolder) override {
+  // As far as I understand, in the acquire the eventSetup is consumed to extract the raw data unpacking/unmasking conditions.
+  // Also, the pipeline for the clusterization is booked in the GPU stream
+  void acquire(edm::Event const& ev, edm::EventSetup const& es, edm::WaitingTaskWithArenaHolder waitingTaskHolder) override
+  {
     const auto& conditions = es.getData(conditionsToken_);        //these need to be GPU conditions
     const auto& cpuConditions = es.getData(cpuConditionsToken_);  //CPU conditions
 
@@ -126,6 +127,7 @@ private:
   edm::ESGetToken<SiStripClusterizerConditions, SiStripClusterizerConditionsRcd> cpuConditionsToken_;
 };
 
+// Automatically create description for the module, with the addition of a few custom parameters (ProductLabel, ConditionsLabel, Clusterizer)
 void SiStripClusterizerFromRawGPU::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
 
@@ -139,6 +141,8 @@ void SiStripClusterizerFromRawGPU::fillDescriptions(edm::ConfigurationDescriptio
   descriptions.addWithDefaultLabel(desc);
 }
 
+
+//@pietroGru This function just unwraps the fill method 
 void SiStripClusterizerFromRawGPU::run(const FEDRawDataCollection& rawColl,
                                        const SiStripClusterizerConditions& conditions) {
   // loop over good det in cabling
@@ -147,6 +151,10 @@ void SiStripClusterizerFromRawGPU::run(const FEDRawDataCollection& rawColl,
   }  // end loop over dets
 }
 
+
+//@pietroGru This function fills the the raw_ FEDrawData array and the array with sistrip::FEDBuffer pointers,
+// effectively this function run the unpacking of the very raw data and handles the unmasking with the valid conditions.
+// (it prepares the data to be then processed and clustered)
 void SiStripClusterizerFromRawGPU::fill(uint32_t idet,
                                         const FEDRawDataCollection& rawColl,
                                         const SiStripClusterizerConditions& conditions) {

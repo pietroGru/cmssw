@@ -9,7 +9,7 @@ clusterizerTests = ClusterizerTest( "Default Clusterizer Settings",
                                               ClusterThreshold = cms.double(5),
                                               MaxSequentialHoles = cms.uint32(0),
                                               MaxSequentialBad   = cms.uint32(1),
-                                    MaxAdjacentBad     = cms.uint32(0),
+                                              MaxAdjacentBad     = cms.uint32(0),
                                               ConditionsLabel = cms.string("")
                                     ),
                                     [

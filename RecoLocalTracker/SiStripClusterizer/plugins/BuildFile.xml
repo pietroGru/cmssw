@@ -16,23 +16,27 @@
   <use name="alpaka"/>
   <!-- The dependency on "DataFormats/PortableTestObjects" automatically expands to include
   the host-only library (if it exists) and the corresponding Alpaka libraries (if they exist)
-  <use name="RecoLocalTracker/SiStripZeroSuppression"/>
-  <use name="RecoTracker/PixelLowPtUtilities"/>
-  <use name="DataFormats/Portable"/>
-  <use name="FWCore/Framework"/>
   -->
+  <!-- <use name="RecoLocalTracker/SiStripZeroSuppression"/>
+  <use name="RecoTracker/PixelLowPtUtilities"/> -->
   <use name="DataFormats/PortableTestObjects"/>
   <use name="DataFormats/TestObjects"/>
+  <use name="FWCore/Framework"/>
   <use name="FWCore/ParameterSet"/>
   <use name="FWCore/Utilities"/>
   <use name="HeterogeneousCore/AlpakaCore"/>
   <use name="HeterogeneousCore/AlpakaInterface"/>
   <use name="HeterogeneousCore/AlpakaTest"/>
   <!--  -->
+  <use name="CalibTracker/SiStripCommon"/>
+  <use name="CalibFormats/SiStripObjects"/>
+  <use name="CondFormats/SiStripObjects"/>
+  <use name="DataFormats/SiStripClusterSoA"/>
+  <use name="DataFormats/Portable"/>
   <use name="EventFilter/SiStripRawToDigi"/>
   <use name="RecoLocalTracker/SiStripClusterizer"/>
-  <!-- <use name="CalibFormats/SiStripObjects"/> -->
-  <!-- <use name="CalibTracker/SiStripCommon"/> -->
+  <use name="RecoLocalTracker/Records"/>
+  <!--  -->
   <flags ALPAKA_BACKENDS="1"/>
   <flags EDM_PLUGIN="1"/>
-</library> 
+</library>

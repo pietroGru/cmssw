@@ -1,0 +1,10 @@
+#ifndef RecoLocalTracker_SiStripClusterizer_plugins_ChannelLocsHost_h
+#define RecoLocalTracker_SiStripClusterizer_plugins_ChannelLocsHost_h
+
+#include "DataFormats/Portable/interface/PortableHostCollection.h"
+#include "RecoLocalTracker/SiStripClusterizer/plugins/ChannelLocsSoA.h"
+
+
+using ChannelLocsHost = PortableHostCollection<ChannelLocsSoA>;
+
+#endif // RecoLocalTracker_SiStripClusterizer_plugins_ChannelLocsHost_h
