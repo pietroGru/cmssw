@@ -1,6 +1,5 @@
 #ifndef DataFormats_SiStripClusterSoA_src_classes_h
 #define DataFormats_SiStripClusterSoA_src_classes_h
-#include <array>
 
 #include "DataFormats/Common/interface/Wrapper.h"
 #include "DataFormats/SiStripClusterSoA/interface/SiStripClustersHost.h"
