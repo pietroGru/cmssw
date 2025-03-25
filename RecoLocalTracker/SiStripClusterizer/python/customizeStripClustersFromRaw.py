@@ -44,6 +44,24 @@ def customizeHLTStripClustersFromRaw_alpaka(process: cms.Process, MaxClusterSize
             # print(f"[hltSiStripRawToClustersFacility] No Clusterizer.MaxClusterSize defined. Defaulting to {MaxClusterSize}")
             hltSiStripRawToClustersFacilityAlpaka.Clusterizer.MaxClusterSize = cms.uint32(MaxClusterSize)
         
+        if not hasattr(hltSiStripRawToClustersFacilityAlpaka, "Unpacker"):
+            hltSiStripRawToClustersFacilityAlpaka.Unpacker = cms.PSet(
+                AppendedBytes = cms.int32(0),
+                TriggerFedId = cms.int32(0),
+                LegacyUnpacker = cms.bool(False),
+                UseDaqRegister = cms.bool(False),
+                UseFedKey = cms.bool(False),
+                UnpackBadChannels = cms.bool(False),
+                MarkModulesOnMissingFeds = cms.bool(True),
+                FedBufferDumpFreq = cms.untracked.int32(0),
+                FedEventDumpFreq = cms.untracked.int32(0),
+                Quiet = cms.untracked.bool(True),
+                UnpackCommonModeValues = cms.bool(False),
+                DoAllCorruptBufferChecks = cms.bool(False),
+                DoAPVEmulatorCheck = cms.bool(False),
+                ErrorThreshold = cms.uint32(7174)
+            )
+            
         # The alpaka version work with only READOUT_MODE_ZERO_SUPPRESSED or READOUT_MODE_ZERO_SUPPRESSED_LITE10
         
         # Remove illegal parameters from the configuration
@@ -52,7 +70,7 @@ def customizeHLTStripClustersFromRaw_alpaka(process: cms.Process, MaxClusterSize
         
         # Create the converter bringing the alpaka-made cluster into legacy objects
         # hltSiStripClustersToLegacy = cms.EDProducer("SiStripClustersToLegacy@alpaka",
-        hltSiStripClustersToLegacy = cms.EDProducer("sistrip::SiStripClustersToLegacy@alpaka",
+        hltSiStripClustersToLegacy = cms.EDProducer("sistrip::SiStripClustersToLegacy",
             source = cms.InputTag("hltSiStripRawToClustersFacilityAlpaka")
         )
         

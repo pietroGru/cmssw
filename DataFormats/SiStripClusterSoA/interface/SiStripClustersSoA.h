@@ -6,13 +6,13 @@
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
 
 namespace sistrip {
-  const static auto maxStripsPerCluster = 768;
-  using clusterADCsColumn = edm::StdArray<uint8_t, maxStripsPerCluster>; /*768*/
+  const static auto maxStripsPerCluster = 32;
+  using ClusterADCsColumn = edm::StdArray<uint8_t, maxStripsPerCluster>; /*768*/
 
   GENERATE_SOA_LAYOUT(SiStripClustersSoALayout,
                       SOA_COLUMN(uint32_t, clusterIndex),
                       SOA_COLUMN(uint32_t, clusterSize),
-                      SOA_COLUMN(clusterADCsColumn, clusterADCs),
+                      SOA_COLUMN(ClusterADCsColumn, clusterADCs),
                       SOA_COLUMN(uint32_t, clusterDetId),
                       SOA_COLUMN(uint16_t, firstStrip),
                       SOA_COLUMN(bool, trueCluster),
