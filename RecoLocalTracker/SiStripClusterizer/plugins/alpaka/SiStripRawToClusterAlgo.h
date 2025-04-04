@@ -23,10 +23,10 @@ namespace sistripclusterizer {
                       SOA_COLUMN(uint16_t, stripId))
 
   GENERATE_SOA_LAYOUT(StripClustersAuxSoALayout,
-                      SOA_COLUMN(int, seedStripsMask),
-                      SOA_COLUMN(int, seedStripsNCMask),
-                      SOA_COLUMN(int, seedStripsNCIndex),
-                      SOA_COLUMN(int, prefixSeedStripsNCMask),
+                      SOA_COLUMN(uint32_t, seedStripsMask),
+                      SOA_COLUMN(uint32_t, seedStripsNCMask),
+                      SOA_COLUMN(uint32_t, seedStripsNCIndex),
+                      SOA_COLUMN(uint32_t, prefixSeedStripsNCMask),
                       //
                       SOA_SCALAR(float, channelThreshold),
                       SOA_SCALAR(float, seedThreshold),
@@ -36,7 +36,7 @@ namespace sistripclusterizer {
                       SOA_SCALAR(uint8_t, maxAdjacentBad),
                       // SOA_SCALAR(uint32_t, maxClusterSize),
                       SOA_SCALAR(float, minGoodCharge),
-                      SOA_SCALAR(int, clusterSizeLimit))
+                      SOA_SCALAR(uint32_t, clusterSizeLimit))
 
   using StripDigiSoA = StripDigiSoALayout<>;
   using StripDigiView = StripDigiSoA::View;
@@ -140,6 +140,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     // Get the current position of the offset
     inline auto getCurrentOffset() { return offsetInBuffer_; }
 
+    // Get a pointer to the fedIDset array
+    inline auto getFedIDset() const { return &fedIDset_; }
+
   private:
     const size_t bufferSize_byte_;
     std::vector<bool> fedIDset_;
@@ -159,6 +162,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     void initialize(Queue& queue, int n_strips);
 
     void unpackStrips(Queue& queue,
+                      const uint8_t* rawDataView,
                       SiStripMappingDevice const& mapping,
                       SiStripClusterizerConditionsDataDevice const& conditions);
 

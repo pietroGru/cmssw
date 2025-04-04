@@ -165,6 +165,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip::fedchannelunpacker {
         out.channel(*aoffIdx) = chan;
         out.stripId(*aoffIdx) = stripStart + firstStrip + inCluster;
         out.adc(*aoffIdx) = getADC_W<num_words>(data, offset, bits_shift);
+        // printf("unpackZSW [%i] | chan %i stripId %i adc %i\n", *aoffIdx, chan, out.stripId(*aoffIdx), out.adc(*aoffIdx));
         (*aoffIdx)++;
         offset += num_words;
         ++inCluster;
@@ -228,14 +229,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip::fedchannelunpacker {
         }
         out.channel(*idx) = chan;
         out.stripId(*idx) = stripStart + firstStrip + inCluster;
-        out.channel(*idx) = stripStart + firstStrip + inCluster;
+        // printf("unpackZSB [%i] | chan %i stripId %i adc %i\n", *idx, chan, out.stripId(*idx), out.adc(*idx));
         ++inCluster;
         if (bOffset == BITS_PER_BYTE) {
           bOffset = 0;
           ++wOffset;
         }
       }
-      printf("[%i] | SUCCESS\n", *idx);
+      // printf("[%i] | SUCCESS\n", *idx);
       return StatusCode::SUCCESS;
     }
 
@@ -398,6 +399,33 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     return fedIndex(fedID) * FEDCH_PER_FED + fedCH;
   }
 
+  class siStripKer_init {
+  public:
+    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
+    ALPAKA_FN_HOST_ACC void operator()(TAcc const& acc,
+                                       const float r_channelThreshold,
+                                       const float r_seedThreshold,
+                                       const float r_clusterThresholdSquared,
+                                       const uint8_t r_maxSequentialHoles,
+                                       const uint8_t r_maxSequentialBad,
+                                       const uint8_t r_maxAdjacentBad,
+                                       const float r_minGoodCharge,
+                                       const uint32_t r_clusterSizeLimit,
+                                       StripClustersAuxView clusterDataObj) const {
+      if (once_per_grid(acc)) {
+        // Initialize the members of the clusterizer
+        clusterDataObj.channelThreshold() = r_channelThreshold;
+        clusterDataObj.seedThreshold() = r_seedThreshold;
+        clusterDataObj.clusterThresholdSquared() = r_clusterThresholdSquared;
+        clusterDataObj.maxSequentialHoles() = r_maxSequentialHoles;
+        clusterDataObj.maxSequentialBad() = r_maxSequentialBad;
+        clusterDataObj.maxAdjacentBad() = r_maxAdjacentBad;
+        clusterDataObj.minGoodCharge() = r_minGoodCharge;
+        clusterDataObj.clusterSizeLimit() = r_clusterSizeLimit;
+      }
+    }
+  };
+
   class siStripKer_unpackZS {
   public:
     template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
@@ -405,6 +433,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                                        bool legacy,
                                        FEDLegacyReadoutMode lmode,
                                        StripDigiView stripDigis,
+                                       const uint8_t* rawData,
                                        //
                                        SiStripMappingConstView mapping,
                                        SiStripClusterizerConditionsData_fedchConstView Data_fedch,
@@ -422,7 +451,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         const auto ipair = Data_fedch.iPair_(channelIndex(fedID, fedCH));
         int ipoff = STRIPS_PER_FEDCH * ipair;
 
-        const unsigned char* channel_data = mapping.input(chan);
+        const unsigned char* channel_data = rawData + mapping.fedChOff(chan);
         const short unsigned channel_len = mapping.length(chan);
         const long unsigned channel_offset = mapping.inoff(chan);
 
@@ -545,7 +574,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
       // Loop over only the non-contiguous strips (flagged in setStripIndex)
       for (auto i : uniform_elements(acc, nSeedStripsNC)) {
-        const auto index = clusterDataObj.seedStripsNCIndex(i);
+        const int index = clusterDataObj.seedStripsNCIndex(i);
         const auto chan = channels[index];
         const auto fed = mapping.fedID(chan);
         const auto channel = mapping.fedCh(chan);
@@ -643,6 +672,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
             }
           }  // while loop
         }  // testIndex < nStrips
+
         clusters.clusterIndex(i) = indexLeft;
         clusters.clusterSize(i) = indexRight - indexLeft + 1;
         clusters.clusterDetId(i) = det;
@@ -669,29 +699,21 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                                   SiStripMappingConstView mapping,
                                   SiStripClusterizerConditionsData_fedchConstView Data_fedch,
                                   SiStripClusterizerConditionsData_apvConstView Data_apv) const {
-      const auto nClusters = clusters.nClusters();
-      auto trueCluster = clusters.trueCluster();
-      auto clusterIndexLeft = clusters.clusterIndex();
-      auto clusterSize = clusters.clusterSize();
-      auto clusterADCs = clusters.clusterADCs();
-      auto adc = stripDataObj.adc();
-      auto charge = clusters.charge();
-      auto barycenter = clusters.barycenter();
-      auto channels = stripDataObj.channel();
-      auto stripId = stripDataObj.stripId();
-      auto minGoodCharge = clusterDataObj.minGoodCharge();
+      //
       constexpr uint8_t adc_low_saturation = 254;
       constexpr uint8_t adc_high_saturation = 255;
       constexpr int charge_low_saturation = 253;
       constexpr int charge_high_saturation = 1022;
+      //
+      auto clusterIndexLeft = clusters.clusterIndex();
 
-      for (auto i : uniform_elements(acc, nClusters)) {
-        if (trueCluster[i]) {
+      for (auto i : uniform_elements(acc, clusters.nClusters())) {
+        if (clusters.trueCluster(i)) {
           unsigned int left = clusterIndexLeft[i];
-          unsigned int size = clusterSize[i];
+          unsigned int size = clusters.clusterSize(i);
 
           if (i > 0 && clusterIndexLeft[i - 1] == left) {
-            trueCluster[i] = 0;  // ignore duplicates
+            clusters.trueCluster(i) = 0;  // ignore duplicates
           } else {
             float adcSum = 0.0f;
             int sumx = 0;
@@ -700,15 +722,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
             int j = 0;
             for (unsigned int k = 0; k < size; k++) {
               auto index = left + k;
-              auto chan = channels[index];
+              auto chan = stripDataObj.channel(index);
               auto fed = mapping.fedID(chan);
               auto channel = mapping.fedCh(chan);
-              auto strip = stripId[index];
+              auto strip = stripDataObj.stripId(index);
 
               if (strip != invalidStrip) {
                 float gain_j = Data_apv.gain_(apvIndex(fed, channel, strip));
 
-                uint8_t adc_j = adc[index];
+                uint8_t adc_j = stripDataObj.adc(index);
                 const int charge = static_cast<int>(static_cast<float>(adc_j) / gain_j + 0.5f);
 
                 if (adc_j < adc_low_saturation) {
@@ -716,7 +738,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                                ? adc_high_saturation
                                : (charge > charge_low_saturation ? adc_low_saturation : charge));
                 }
-                clusterADCs[i][j] = adc_j;
+                clusters.clusterADCs(i)[j] = adc_j;
 
                 adcSum += static_cast<float>(adc_j);
                 sumx += j * adc_j;
@@ -724,16 +746,17 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                 j++;
               }
             }  // loop over cluster strips
-            charge[i] = adcSum;
-            auto chan = channels[left];
+            clusters.charge(i) = adcSum;
+            auto chan = stripDataObj.channel(left);
             auto fed = mapping.fedID(chan);
             auto channel = mapping.fedCh(chan);
-            trueCluster[i] = (adcSum * Data_fedch.invthick_(channelIndex(fed, channel))) > minGoodCharge;
+            clusters.trueCluster(i) =
+                (adcSum * Data_fedch.invthick_(channelIndex(fed, channel))) > clusterDataObj.minGoodCharge();
             auto bary_i = static_cast<float>(sumx) / static_cast<float>(suma);
-            barycenter[i] = static_cast<float>(stripId[left] & stripIndexMask) + bary_i + 0.5f;
-            clusterSize[i] = j;
+            clusters.barycenter(i) = static_cast<float>(stripDataObj.stripId(left) & stripIndexMask) + bary_i + 0.5f;
+            clusters.clusterSize(i) = j;
           }  // not a duplicate cluster
-        }  // trueCluster[i] is true
+        }  // clusters.trueCluster(i) is true
       }  // i < nSeedStripsNC
     }
   };
@@ -761,9 +784,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
       ALPAKA_ASSERT_ACC(numberOfModules < prefixScanUpperLimit);
 
       // Use N single-block prefix scan, then update all blocks after the first one.
-      auto& ws = alpaka::declareSharedVar<int[warpSize], __COUNTER__>(acc);
-      int* clusModuleStart = clusterDataObj.seedStripsNCMask();
-      int* prefix = clusterDataObj.prefixSeedStripsNCMask();
+      auto& ws = alpaka::declareSharedVar<uint32_t[warpSize], __COUNTER__>(acc);
+      uint32_t* clusModuleStart = clusterDataObj.seedStripsNCMask();
+      uint32_t* prefix = clusterDataObj.prefixSeedStripsNCMask();
       int leftModules = numberOfModules;
       // First pass
       while (leftModules > blockSize) {
@@ -824,29 +847,36 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     assert(n_strips >= 0);
 
     // Setup the clusterizer aux parameters from the configuration
-    StripClustersAuxHost sClustersAux_h = StripClustersAuxHost(n_strips, queue);
+    sClustersAux_d_ = std::make_unique<StripClustersAuxDevice>(n_strips, queue);
+    LogDebug("sClustersAux") << "Size of StripClustersAuxDevice (bytes): "
+                             << alpaka::getExtentProduct(sClustersAux_d_->buffer()) * sizeof(std::byte);
 
     // Initialize the members of the clusterizer
-    sClustersAux_h->channelThreshold() = channelThreshold_;
-    sClustersAux_h->seedThreshold() = seedThreshold_;
-    sClustersAux_h->clusterThresholdSquared() = clusterThresholdSquared_;
-    sClustersAux_h->maxSequentialHoles() = maxSequentialHoles_;
-    sClustersAux_h->maxSequentialBad() = maxSequentialBad_;
-    sClustersAux_h->maxAdjacentBad() = maxAdjacentBad_;
-    sClustersAux_h->minGoodCharge() = minGoodCharge_;
-    sClustersAux_h->clusterSizeLimit() = maxClusterSize_;
-    // Move to the device
-    sClustersAux_d_ =
-        std::make_unique<StripClustersAuxDevice>(cms::alpakatools::moveToDeviceAsync(queue, std::move(sClustersAux_h)));
+    auto workDiv = make_workdiv<Acc1D>(1u, 1u);
+    alpaka::exec<Acc1D>(queue,
+                        workDiv,
+                        siStripKer_init{},
+                        channelThreshold_,
+                        seedThreshold_,
+                        clusterThresholdSquared_,
+                        maxSequentialHoles_,
+                        maxSequentialBad_,
+                        maxAdjacentBad_,
+                        minGoodCharge_,
+                        maxClusterSize_,
+                        sClustersAux_d_->view());
 
     // Initialize the digi with all the pre-allocated required number of bytes
     digis_d_ = std::make_unique<StripDigiDevice>(n_strips, queue);
+    LogDebug("digis") << "Size of StripDigiDevice (bytes): "
+                      << alpaka::getExtentProduct(digis_d_->buffer()) * sizeof(std::byte);
     digis_d_->zeroInitialise(queue);
     // Note: the zeroInitialise is not needed for ZS/ZSlite8 - as all elements are initialized in the unpacking
     // I am not sure however in Legacy-ZS or ZS 10-bit.
   }
 
   void SiStripRawToClusterAlgo::unpackStrips(Queue& queue,
+                                             const uint8_t* rawDataView,
                                              SiStripMappingDevice const& mapping,
                                              SiStripClusterizerConditionsDataDevice const& conditions) {
     // In HeterogeneousCore/AlpakaTest, typical sizes are power of 2 like 32 and 64.
@@ -870,6 +900,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                         isLegacyUnpacker_,
                         legacyUnpackerROmode_,
                         digis_d_->view(),
+                        rawDataView,
                         //
                         mapping.const_view(),
                         conditions.const_view<SiStripClusterizerConditionsData_fedchSoA>(),
@@ -885,15 +916,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     // Calculate the prefix for the non-contiguous flagged strips and store in prefixSeedStripsNCMask
     // From example in HeterogeneousCore/AlpakaInterface/test/alpaka/testPrefixScan.dev.cc
     uint32_t num_items = sClustersAux_d_->view().metadata().size();
-    const auto nThreads = 1024;
+    int32_t nThreads = 1024;
     int32_t nBlocks = divide_up_by(num_items, nThreads);
-    auto workDivMultiBlock = make_workdiv<Acc1D>(nBlocks, nThreads);
+    const auto workDivMultiBlock = make_workdiv<Acc1D>(nBlocks, nThreads);
     auto blockCounter_d = make_device_buffer<int32_t>(queue);
     alpaka::memset(queue, blockCounter_d, 0);
     alpaka::enqueue(queue,
                     alpaka::createTaskKernel<Acc1D>(workDivMultiBlock,
-                                                    multiBlockPrefixScan<int>(),
-                                                    sClustersAux_d_->view().seedStripsNCMask(),
+                                                    multiBlockPrefixScan<uint32_t>(),
+                                                    sClustersAux_d_->const_view().seedStripsNCMask(),
                                                     sClustersAux_d_->view().prefixSeedStripsNCMask(),
                                                     num_items,
                                                     nBlocks,
@@ -942,8 +973,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                         mapping.const_view());
 
     // Calculate the discrete integral (prefix sum) of seedStripsNCMask.
-    // prefixScan(queue);
-    prefixScan_new(queue);
+    prefixScan(queue);
+    // prefixScan_new(queue);
     // When the integral increase AND I am at a non-contigous strip, the beginning of new cluster is marked.
 
     // Attach to the index according to the *exclusive* prefix sum when contiguous strips are found
@@ -1006,9 +1037,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     std::ostringstream dumpMsg("[SiStripRawToClusterAlgo::unpackStrips] Dumping unpacked strips\n");
     dumpMsg << "Allocated " << digisSize << " strips\n";
     dumpMsg << "i\tadc\tchan\tstripId\n";
+
     for (int i = 0; i < digisSize; ++i) {
-      if (i < 50 || i > (digisSize - 50) || i % 10000 == 0) {
-        dumpMsg << i << "\t" << (int)digis_h->adc(i) << " " << (int)(digis_h->stripId(i)) << "\n";
+      if (true || i < 50 || i > (digisSize - 50) || i % 10000 == 0) {
+        dumpMsg << i << "\t" << (int)digis_h->adc(i) << " " << (int)(digis_h->channel(i)) << " "
+                << (int)(digis_h->stripId(i)) << "\n";
       }
     }
     LogDebug("unpackStrips") << dumpMsg.str();
@@ -1056,7 +1089,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     dumpMsg << "i\tcIdx\tcSz\tcDetId\tchg\t1st\ttCl\tbary\t - clusterADCs\n";
 
     for (int i = 0; i < clustersPrealloc; ++i) {
-      if (i < 50 || i > (clustersPrealloc - 50) || i % 10000 == 0) {
+      if (true || i < 50 || i > (clustersPrealloc - 50) || i % 10000 == 0) {
         dumpMsg << i << "\t" << clusters_h->clusterIndex(i) << "\t" << clusters_h->clusterSize(i) << "\t"
                 << clusters_h->clusterDetId(i) << "\t" << clusters_h->charge(i) << "\t" << clusters_h->firstStrip(i)
                 << "\t" << clusters_h->trueCluster(i) << "\t" << clusters_h->barycenter(i) << "\t - ";
