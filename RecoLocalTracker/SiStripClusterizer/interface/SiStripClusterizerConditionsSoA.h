@@ -5,11 +5,8 @@
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
 
 namespace sistrip {
-  GENERATE_SOA_LAYOUT(SiStripClusterizerConditionsDetToFedsSoALayout,
-                      SOA_COLUMN(uint32_t, detid_),
-                      SOA_COLUMN(uint16_t, fedid_),
-                      SOA_COLUMN(uint16_t, fedch_),
-                      SOA_COLUMN(uint16_t, ipair_))
+  // The members with underscore, such as `qualityOk_`, are used to indicate that the indexing is done over the chan (and not the trivial index ith).
+  GENERATE_SOA_LAYOUT(SiStripClusterizerConditionsDetToFedsSoALayout, SOA_COLUMN(bool, qualityOk_))
 
   GENERATE_SOA_LAYOUT(SiStripClusterizerConditionsData_fedch_SoALayout,
                       SOA_COLUMN(uint32_t, detID_),
