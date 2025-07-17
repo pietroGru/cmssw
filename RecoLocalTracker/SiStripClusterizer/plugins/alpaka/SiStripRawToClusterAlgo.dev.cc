@@ -416,12 +416,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
         const uint32_t idx = stripIndex(fedId, fedCh, stripID);
         const uint16_t noise_tmp = Data_strip.noise_(idx);
-        const float noise_i = 0.1f * (noise_tmp & ~badBit);
+        const bool isBad = (noise_tmp & badBit) > 0;
 
-        const uint8_t adc_i = stripDigi.adc(i);
-
-        clusterDataObj.seedStripsMask(i) = (adc_i >= static_cast<uint8_t>(noise_i * seedThreshold)) ? 1 : 0;
-        clusterDataObj.seedStripsNCMask(i) = clusterDataObj.seedStripsMask(i);
+        if(!isBad){
+          const float noise_i = 0.1f * (noise_tmp & ~badBit);
+          const uint8_t adc_i = stripDigi.adc(i);
+          clusterDataObj.seedStripsMask(i) = (adc_i >= static_cast<uint8_t>(noise_i * seedThreshold)) ? 1 : 0;
+          clusterDataObj.seedStripsNCMask(i) = clusterDataObj.seedStripsMask(i);
+        }
         // clusterDataObj.seedStripsNCMask(chan) = static_cast<uint8_t>(seedThreshold); // debugging
       }
     }
@@ -513,7 +515,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         // Calculate the accumulated noise2 and ADC
         uint16_t clSize = 1;
         float noiseSquared_i = noise_i * noise_i;
-        float adcSum_i = static_cast<float>(adcArr[chan_]);
+        float adcSum_i = adcArr[chan_];
         int32_t testIndex = chan_ - 1;
 
         auto addtocluster = [&](int& indexLR) {
@@ -524,15 +526,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
           const uint32_t test_idx = stripIndex(test_fedId, test_fedCh, test_stripId);
           const uint16_t test_noise_tmp = Data_strip.noise_(test_idx);
+          const bool test_isBad = (test_noise_tmp & badBit) > 0;
+          
           const float test_noise_i = 0.1f * (test_noise_tmp & ~badBit);
-
           const uint8_t testADC = adcArr[testIndex];
 
-          if (testADC >= static_cast<uint8_t>(test_noise_i * channelThreshold)) {
+          if (!test_isBad && (testADC >= static_cast<uint8_t>(test_noise_i * channelThreshold))) {
             ++clSize;
             indexLR = testIndex;
             noiseSquared_i += test_noise_i * test_noise_i;
-            adcSum_i += static_cast<float>(testADC);
+            adcSum_i += testADC;
           }
         };
 
@@ -606,8 +609,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         clusters.clusterDetId(i) = detId;
         clusters.firstStrip(i) = stripIdArr[indexLeft];
         // Flag candidates which do not pass (cluster noise threshold) && (cluster size) conditions. Max number of holes already accounted in candidate finder
+        // Floating point approximation leads sensitivity on the above condition for O(12/500) events, with NCluster deviation w.r.t. legacy module of O(1).
         clusters.candidateAccepted(i) = (noiseSquared_i * clusterThresholdSquared <= adcSum_i * adcSum_i) &&
-                                        (clusters.clusterSize(i) <= static_cast<uint16_t>(clusterSizeLimit));
+                                        (clusters.clusterSize(i) <= clusterSizeLimit);
         clusters.candidateAcceptedPrefix(i) = static_cast<uint32_t>(clusters.candidateAccepted(i));
       }  // i < nSeedStripsNC
     }
@@ -984,6 +988,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                         stripMapping_d->const_view(),
                         conditions_Data->const_view<SiStripClusterizerConditionsData_stripSoA>());
 
+    // dumpClusters(queue, clusters_d.get(), digis_d_.get());                     
+
     // Apply the conditions
     alpaka::exec<Acc1D>(queue,
                         workDiv,
@@ -1099,7 +1105,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     dumpMsg << "i,cIdx,cSz,cDetId,chg,1st,tCl,tClIdx,bary,|clusterADCs|\n";
 
     for (int i = 0; i < clustersN; ++i) {
-      if (i < 100 || i > (clustersN - 100)) {
+      if (true || i < 100 || i > (clustersN - 100)) {
         dumpMsg << i << "," << clusters_h->clusterIndex(i) << "," << clusters_h->clusterSize(i) << ","
                 << clusters_h->clusterDetId(i) << "," << clusters_h->charge(i) << "," << clusters_h->firstStrip(i)
                 << "," << clusters_h->candidateAccepted(i) << "," << clusters_h->candidateAcceptedPrefix(i) << ","
