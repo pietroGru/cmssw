@@ -31,7 +31,6 @@ namespace sistrip {
     }
 
     void produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const&) const override {
-      
       auto const& clusters_onHost = iEvent.get(siStripClustersToken_);
       auto const& amplitudes_onHost = iEvent.get(siStripDigiToken_);
 
@@ -59,12 +58,12 @@ namespace sistrip {
       using out_t = edmNew::DetSetVector<SiStripCluster>;
       auto output = std::make_unique<out_t>(edmNew::DetSetVector<SiStripCluster>());
       // output->reserve(nModulesWithClustersGuess, goodClustersNb);
-      
+
       // Debugging
       // output->reserve(nModulesWithClustersGuess, 10);
       // iEvent.put(siStripClustersSetVecPutToken_, std::move(output));
       // return ;
-      
+
       // std::vector<uint8_t> adcs;
       uint32_t clusterN = 0;
       for (uint32_t i = 0; i < clusterCandidatesNb && (clusterN < goodClustersNb);) {

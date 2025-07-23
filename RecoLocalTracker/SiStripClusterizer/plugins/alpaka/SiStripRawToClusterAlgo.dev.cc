@@ -418,7 +418,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         const uint16_t noise_tmp = Data_strip.noise_(idx);
         const bool isBad = (noise_tmp & badBit) > 0;
 
-        if(!isBad){
+        if (!isBad) {
           const float noise_i = 0.1f * (noise_tmp & ~badBit);
           const uint8_t adc_i = stripDigi.adc(i);
           clusterDataObj.seedStripsMask(i) = (adc_i >= static_cast<uint8_t>(noise_i * seedThreshold)) ? 1 : 0;
@@ -527,7 +527,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
           const uint32_t test_idx = stripIndex(test_fedId, test_fedCh, test_stripId);
           const uint16_t test_noise_tmp = Data_strip.noise_(test_idx);
           const bool test_isBad = (test_noise_tmp & badBit) > 0;
-          
+
           const float test_noise_i = 0.1f * (test_noise_tmp & ~badBit);
           const uint8_t testADC = adcArr[testIndex];
 
@@ -968,6 +968,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
     // The maximum number of clusters is set to kMaxSeedStrips
     auto clusters_d = std::make_unique<SiStripClusterDevice>(kMaxSeedStrips_, queue);
+    clusters_d->zeroInitialise(queue);
     // The number of seed over which to loop for clusters is the min between the number of strips and the kMaxSeeds
     const uint32_t nStrips = nStrips_h->data()[0];
     const uint32_t nSeeds = std::min(kMaxSeedStrips_, nStrips);
@@ -988,7 +989,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                         stripMapping_d->const_view(),
                         conditions_Data->const_view<SiStripClusterizerConditionsData_stripSoA>());
 
-    // dumpClusters(queue, clusters_d.get(), digis_d_.get());                     
+    // dumpClusters(queue, clusters_d.get(), digis_d_.get());
 
     // Apply the conditions
     alpaka::exec<Acc1D>(queue,
@@ -1021,6 +1022,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         make_device_view(queue, clusters_d->view().candidateAcceptedPrefix(kMaxSeedStrips_ - 1));
     auto viewDst_realClusters = make_device_view(queue, digis_d_->view().nbGoodCandidates());
     alpaka::memcpy(queue, viewDst_realClusters, viewSrc_realClusters);
+
+    // // Debugging statement to inspect the candidateAcceptedPrefix
+    // auto inspect_nbGoodCandidates = cms::alpakatools::make_host_buffer<uint32_t>(queue);
+    // auto viewSrc = make_device_view(queue, clusters_d->view().candidateAcceptedPrefix(kMaxSeedStrips_ - 1));
+    // // alpaka::ViewPlainPtr<alpaka::DevCpu, unsigned int, std::integral_constant<unsigned long, 0>, unsigned int>)
+    // auto viewDst = make_host_view(*inspect_nbGoodCandidates);
+    // // alpaka::ViewPlainPtr<alpaka::DevCpu, unsigned int, std::integral_constant<unsigned long, 0>, unsigned int>
+    // alpaka::memcpy(queue, viewDst, viewSrc);
+    // alpaka::wait(queue);
+    // std::cout << "#nbGoodCandidates," << *inspect_nbGoodCandidates << std::endl;
 
     // Store also the number of cluster candidates, in order to reduce as much as possible the loop for the slimming in the legacy converter
     auto viewSrc_candidatesN = make_device_view(queue, clusters_d->view().nClusterCandidates());
@@ -1105,7 +1116,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     dumpMsg << "i,cIdx,cSz,cDetId,chg,1st,tCl,tClIdx,bary,|clusterADCs|\n";
 
     for (int i = 0; i < clustersN; ++i) {
-      if (true || i < 100 || i > (clustersN - 100)) {
+      if (i < 100 || i > (clustersN - 100)) {
         dumpMsg << i << "," << clusters_h->clusterIndex(i) << "," << clusters_h->clusterSize(i) << ","
                 << clusters_h->clusterDetId(i) << "," << clusters_h->charge(i) << "," << clusters_h->firstStrip(i)
                 << "," << clusters_h->candidateAccepted(i) << "," << clusters_h->candidateAcceptedPrefix(i) << ","
@@ -1127,6 +1138,27 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     dumpMsg << "#zClDump\n";
     dumpMsg << "#goodCandidates," << digis_h.view().nbGoodCandidates() << ":"
             << clusters_h->candidateAcceptedPrefix(clustersPrealloc - 1) << "\n";
+
+    dumpMsg << "#last\n";
+    dumpMsg << "i,cIdx,cSz,cDetId,chg,1st,tCl,tClIdx,bary,|clusterADCs|\n";
+    for (int i = clustersPrealloc - 100; i > 0 && i < clustersPrealloc; ++i) {
+      dumpMsg << i << "," << clusters_h->clusterIndex(i) << "," << clusters_h->clusterSize(i) << ","
+              << clusters_h->clusterDetId(i) << "," << clusters_h->charge(i) << "," << clusters_h->firstStrip(i) << ","
+              << clusters_h->candidateAccepted(i) << "," << clusters_h->candidateAcceptedPrefix(i) << ","
+              << clusters_h->barycenter(i) << ",|";
+      if (clusters_h->candidateAccepted(i)) {
+        for (int j = 0; j < clusters_h->clusterSize(i); ++j) {
+          uint32_t index = clusters_h->clusterIndex(i) + j;
+          dumpMsg << (int)(digis_h->adc(index));
+          if (j != (clusters_h->clusterSize(i) - 1)) {
+            dumpMsg << "/";
+          }
+        }
+      } else {
+        dumpMsg << "-";
+      }
+      dumpMsg << "|\n";
+    }
     std::cout << dumpMsg.str();
   }
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip

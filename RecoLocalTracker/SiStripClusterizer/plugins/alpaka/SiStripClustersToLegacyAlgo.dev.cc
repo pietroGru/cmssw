@@ -67,8 +67,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     // Number of candidates and actual clusters
     goodCandidates_ = nbClusters;
     const uint32_t clusterCandidates = nbClusterCandidates;
+
+    // std::ostringstream msg;
     // const uint32_t clusterCollectionSize = clusters_d.view().metadata().size();
-    // std::cout << "#csSoA," << clusterCollectionSize << ","  << clusterCandidates << "," << goodCandidates_ << std::endl;
+    // msg << "#csSoA," << clusterCollectionSize << ","  << clusterCandidates << "," << goodCandidates_;
+    // std::cout << msg.str() << std::endl;
 
     // Prepare a new cluster collection with the size of goodCandidates
     auto clusters_d_slim = SiStripClustersSlimDevice(goodCandidates_, queue);
@@ -105,7 +108,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
     // Educated guess for the total number of detector IDs,
     // based on Run: 386593 Event: 536278171 with 13883 detectors.
-    const unsigned int kInitSeedStripsSize = 15000;
+    // const unsigned int kInitSeedStripsSize = 15000;
     // The number of clusters from x->nClusters() is an upper limit,
     // the flag candidateAccepted then mask the real clusters.
     // From Run: 386593 Event: 536278171 there are nClusters=112735 with
@@ -114,7 +117,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
     using out_t = edmNew::DetSetVector<SiStripCluster>;
     auto output = std::make_unique<out_t>(edmNew::DetSetVector<SiStripCluster>());
-    output->reserve(kInitSeedStripsSize, nSeedStripsNC);
+    // output->reserve(kInitSeedStripsSize, nSeedStripsNC);
+    // return output;
 
     for (int i = 0; i < nSeedStripsNC;) {
       const auto detid = detIDs[i];
@@ -153,7 +157,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     int cIdx = 0;
     const int trueCluster = 1;
     for (auto it = detSetClusters->begin(); it != detSetClusters->end(); ++cIdx, it++) {
-      if (true || i < 100 || i > (clustersAlloc - 100)) {
+      if (i < 100 || i > (clustersAlloc - 100)) {
         auto detSet = *it;
         auto cDetId = detSet.detId();
         // int clNum = detSet.size();
