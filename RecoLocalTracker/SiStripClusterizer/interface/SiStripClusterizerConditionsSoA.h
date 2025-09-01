@@ -3,6 +3,7 @@
 
 #include "DataFormats/SoATemplate/interface/SoACommon.h"
 #include "DataFormats/SoATemplate/interface/SoALayout.h"
+#include "DataFormats/SiStripCommon/interface/ConstantsForHardwareSystems.h"
 
 namespace sistrip {
   // The underscore, such as `qualityOk_`, indicates the array is indexed with the channel index.
