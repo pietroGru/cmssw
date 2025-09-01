@@ -14,12 +14,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     using namespace ::sistrip;
     using SiStripClusterizerConditionsDetToFedsDeviceObject = PortableObject<DetToFeds>;
     using SiStripClusterizerConditionsDataDeviceObject = PortableObject<Data>;
-  }
+  }  // namespace sistrip
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
 // check that the portable device collection for the host device is the same as the portable host collection
-ASSERT_DEVICE_MATCHES_HOST_COLLECTION(sistrip::SiStripClusterizerConditionsDetToFedsDeviceObject, sistrip::SiStripClusterizerConditionsDetToFedsHostObject);
-ASSERT_DEVICE_MATCHES_HOST_COLLECTION(sistrip::SiStripClusterizerConditionsDataDeviceObject, sistrip::SiStripClusterizerConditionsDataHostObject);
+ASSERT_DEVICE_MATCHES_HOST_COLLECTION(sistrip::SiStripClusterizerConditionsDetToFedsDeviceObject,
+                                      sistrip::SiStripClusterizerConditionsDetToFedsHostObject);
+ASSERT_DEVICE_MATCHES_HOST_COLLECTION(sistrip::SiStripClusterizerConditionsDataDeviceObject,
+                                      sistrip::SiStripClusterizerConditionsDataHostObject);
 
-#endif 
+#endif

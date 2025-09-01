@@ -14,7 +14,6 @@
 #include "RecoLocalTracker/SiStripClusterizer/interface/alpaka/SiStripClusterizerConditionsDeviceObject.h"
 #include "RecoLocalTracker/SiStripClusterizer/interface/alpaka/SiStripMappingDevice.h"
 
-
 namespace edm {
   class ParameterSet;
 }

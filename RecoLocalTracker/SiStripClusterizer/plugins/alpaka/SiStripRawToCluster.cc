@@ -59,10 +59,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     // Setup
     bool doAPVEmulatorCheck_;
 
-    edm::ESWatcher<SiStripClusterizerConditionsRcd> stripCondWatcher_;
-    edm::ESWatcher<SiStripClusterizerConditionsDetToFedsRecord> stripCablCondWatcher_;
-    edm::ESWatcher<SiStripClusterizerConditionsDataRecord> stripDataCondWatcher_;
-
     // Helper functions to fill valid, condition-passing raw/buffers
     std::unique_ptr<FEDBuffer> fillBuffer(int fedId, const FEDRawData& rawData);
   };
