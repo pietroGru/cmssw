@@ -21,8 +21,10 @@
 #include "RecoLocalTracker/SiStripClusterizer/interface/SiStripClusterizerConditionsSoA.h"
 #include "RecoLocalTracker/SiStripClusterizer/interface/SiStripClusterizerConditionsRecord.h"
 
+#include "RecoLocalTracker/SiStripClusterizer/interface/SiStripClusterizerConditionsHostObject.h"
 // To allow the framework automatic host-device move
 #include "RecoLocalTracker/SiStripClusterizer/interface/alpaka/SiStripClusterizerConditionsDevice.h"
+
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
   // Unqualified lookup of the top level namespace
@@ -50,10 +52,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     SiStripClusterizerConditionsESProducerAlpaka(edm::ParameterSet const& iConfig) : ESProducer(iConfig) {
       // Two tokens for quality because of the exc message:
       // You may need multiple tokens if you want to get the same data in multiple transitions.
-      auto listenA = setWhatProduced(this, &SiStripClusterizerConditionsESProducerAlpaka::produceDetToFeds);
+      auto listenA = setWhatProduced(this, &SiStripClusterizerConditionsESProducerAlpaka::produceDetToFeds2);
       qualityTokenA_ = listenA.consumes(edm::ESInputTag{"", iConfig.getParameter<std::string>("QualityLabel")});
 
-      auto listenB = setWhatProduced(this, &SiStripClusterizerConditionsESProducerAlpaka::produceData);
+      auto listenB = setWhatProduced(this, &SiStripClusterizerConditionsESProducerAlpaka::produceData2);
       qualityTokenB_ = listenB.consumes(edm::ESInputTag{"", iConfig.getParameter<std::string>("QualityLabel")});
       gainsToken_ = listenB.consumes();
       noisesToken_ = listenB.consumes();
@@ -145,6 +147,78 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
       return product;
     }
+
+
+    std::unique_ptr<SiStripClusterizerConditionsDetToFedsHostObject> produceDetToFeds2(SiStripClusterizerConditionsDetToFedsRecord const& iRecord) {
+      const auto& quality = iRecord.get(qualityTokenA_);
+
+      auto product = std::make_unique<SiStripClusterizerConditionsDetToFedsHostObject>(cms::alpakatools::host());
+      product->zeroInitialise();
+      
+      auto detToFeds_qualityFlags = (*product)->qualityOk_;
+      // detToFeds_qualityFlags size = 34813;
+
+      // connected: map<DetID, std::vector<int>>
+      // map of KEY=detid DATA=vector of apvs, maximum 6 APVs per detector module :
+      const auto& connected = quality.cabling()->connected();
+      // detCabling: map<DetID, std::vector<const FedChannelConnection*>
+      // map of KEY=detid DATA=vector<FedChannelConnection>
+      const auto& detCabling = quality.cabling()->getDetCabling();
+
+      // // debug
+      // std::ostringstream ss;
+      // ss << "#dtf2,";
+
+      for (const auto& conn : connected) {
+        const auto det = conn.first;
+        if (!quality.IsModuleBad(det)) {
+          const auto detConn_it = detCabling.find(det);
+
+          if (detCabling.end() != detConn_it) {
+            for (const auto& conn : (*detConn_it).second) {
+              if (conn && conn->fedId() && conn->isConnected()) {
+                const auto conn_fedID = conn->fedId();
+                const auto conn_fedCh = conn->fedCh();
+
+                uint32_t idx = channelIndex(conn_fedID, conn_fedCh);
+                detToFeds_qualityFlags[idx] = true;
+                // ss << idx << ",";
+              }
+            }
+          }
+        }
+      }
+
+      // // debug
+      // std::cout << ss.str() << std::endl;
+
+      return product;
+    }
+
+    std::unique_ptr<SiStripClusterizerConditionsDataHostObject> produceData2(SiStripClusterizerConditionsDataRecord const& iRecord) {
+      auto gains = iRecord.getTransientHandle(gainsToken_);
+      const auto& noises = iRecord.get(noisesToken_);
+      const auto& quality = iRecord.get(qualityTokenB_);
+
+      // Prepare the conditions on the host
+      auto product = std::make_unique<SiStripClusterizerConditionsDataHostObject>(cms::alpakatools::host()); 
+      const int Data_fedch_size = (*product)->invthick_.size();  // 42240
+      const int Data_strip_size = (*product)->noise_.size(); // 10813440
+      const int Data_apv_size = (*product)->gain_.size();  // 84480
+
+      // Fill the collections
+      fillSiStripClusterizerConditions(quality,
+                                       gains.product(),
+                                       noises,
+                                       std::span((*product)->invthick_.data(), Data_fedch_size),
+                                       std::span((*product)->detID_.data(), Data_fedch_size),
+                                       std::span((*product)->iPair_.data(), Data_fedch_size),
+                                       std::span((*product)->noise_.data(), Data_strip_size),
+                                       std::span((*product)->gain_.data(), Data_apv_size));
+      //
+      return product;
+    }
+
 
     // Auxiliary functions to translate indexes on the arrays
     static constexpr uint16_t badBit = 1 << 15;
