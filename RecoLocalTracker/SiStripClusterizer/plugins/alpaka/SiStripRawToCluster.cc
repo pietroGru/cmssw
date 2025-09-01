@@ -20,6 +20,7 @@
 
 #include "RecoLocalTracker/SiStripClusterizer/interface/StripClusterizerAlgorithmFactory.h"
 #include "RecoLocalTracker/SiStripClusterizer/interface/alpaka/SiStripClusterizerConditionsDevice.h"
+#include "RecoLocalTracker/SiStripClusterizer/interface/alpaka/SiStripClusterizerConditionsDeviceObject.h"
 #include "RecoLocalTracker/SiStripClusterizer/interface/SiStripClusterizerConditionsRecord.h"
 #include "RecoLocalTracker/Records/interface/SiStripClusterizerConditionsRcd.h"
 
@@ -48,9 +49,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
     edm::EDGetTokenT<FEDRawDataCollection> fedRawGetToken_;
     edm::ESGetToken<SiStripClusterizerConditions, SiStripClusterizerConditionsRcd> stripCondGetToken_;
-    device::ESGetToken<SiStripClusterizerConditionsDetToFedsDevice, SiStripClusterizerConditionsDetToFedsRecord>
+    device::ESGetToken<SiStripClusterizerConditionsDetToFedsDeviceObject, SiStripClusterizerConditionsDetToFedsRecord>
         stripCablCondGetToken_;
-    device::ESGetToken<SiStripClusterizerConditionsDataDevice, SiStripClusterizerConditionsDataRecord>
+    device::ESGetToken<SiStripClusterizerConditionsDataDeviceObject, SiStripClusterizerConditionsDataRecord>
         stripDataCondGetToken_;
     device::EDPutToken<SiStripClusterDevice> stripClustPutToken_;
     device::EDPutToken<SiStripDigiDevice> stripDigiPutToken_;
@@ -120,7 +121,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     std::unique_ptr<PortableFEDMover> fedChMover = fillFedIdFedChBuffer(iEvent.queue(), stripCond, rawCollection);
 
     // Move PortableFEDMover class to algo
-    algo_.prepareUnpackCluster(iEvent.queue(), stripCablCond, std::move(fedChMover));
+    algo_.prepareUnpackCluster(iEvent.queue(), stripCablCond.const_data(), std::move(fedChMover));
   }
 
   void SiStripRawToCluster::produce(device::Event& iEvent, device::EventSetup const& iSetup) {
@@ -130,10 +131,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         << "#sizeB,stripDataCond_," << alpaka::getExtentProduct(stripDataCond.buffer());
 
     // Unpack the raw FED data into strip digi
-    algo_.unpackStrips(iEvent.queue(), stripDataCond);
+    algo_.unpackStrips(iEvent.queue(), stripDataCond.const_data());
 
     // Run the clusterization algorithm (ThreeThresholdAlgorithm)
-    auto cluster_d = algo_.makeClusters(iEvent.queue(), stripDataCond);
+    auto cluster_d = algo_.makeClusters(iEvent.queue(), stripDataCond.const_data());
 
     // Get the clusters amplitudes
     auto clusterAmpls_d = algo_.releaseDigiAmplitudes(iEvent.queue());
