@@ -875,15 +875,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     const int32_t nBlocks = divide_up_by(nStrips, nThreads);
     auto blockCounter_d = make_device_buffer<int32_t>(queue);
     alpaka::memset(queue, blockCounter_d, 0);
-    alpaka::enqueue(queue,
-                    alpaka::createTaskKernel<Acc1D>(make_workdiv<Acc1D>(nBlocks, nThreads),
-                                                    multiBlockPrefixScan<uint32_t>(),
-                                                    sClustersAux_d_->const_view().seedStripsNCMask().data(),
-                                                    sClustersAux_d_->view().prefixSeedStripsNCMask().data(),
-                                                    nStrips,
-                                                    nBlocks,
-                                                    blockCounter_d.data(),
-                                                    alpaka::getPreferredWarpSize(alpaka::getDev(queue))));
+    alpaka::exec<Acc1D>(queue,
+                        make_workdiv<Acc1D>(nBlocks, nThreads),
+                        multiBlockPrefixScan<uint32_t>(),
+                        sClustersAux_d_->const_view().seedStripsNCMask().data(),
+                        sClustersAux_d_->view().prefixSeedStripsNCMask().data(),
+                        nStrips,
+                        nBlocks,
+                        blockCounter_d.data(),
+                        alpaka::getPreferredWarpSize(alpaka::getDev(queue)));
 
     // Get the total number of non-contiguous seeds (ready on the host in produce)
     nSeeds_h_ = cms::alpakatools::make_host_buffer<uint32_t>(queue);
@@ -938,15 +938,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     const int32_t nBlocks = divide_up_by(kMaxSeedStrips_, nThreads);
     auto blockCounter_d = make_device_buffer<int32_t>(queue);
     alpaka::memset(queue, blockCounter_d, 0);
-    alpaka::enqueue(queue,
-                    alpaka::createTaskKernel<Acc1D>(make_workdiv<Acc1D>(nBlocks, nThreads),
-                                                    multiBlockPrefixScan<uint32_t>(),
-                                                    clusters_d->const_view().candidateAcceptedPrefix().data(),
-                                                    clusters_d->view().candidateAcceptedPrefix().data(),
-                                                    kMaxSeedStrips_,
-                                                    nBlocks,
-                                                    blockCounter_d.data(),
-                                                    alpaka::getPreferredWarpSize(alpaka::getDev(queue))));
+    alpaka::exec<Acc1D>(queue,
+                        make_workdiv<Acc1D>(nBlocks, nThreads),
+                        multiBlockPrefixScan<uint32_t>(),
+                        clusters_d->const_view().candidateAcceptedPrefix().data(),
+                        clusters_d->view().candidateAcceptedPrefix().data(),
+                        kMaxSeedStrips_,
+                        nBlocks,
+                        blockCounter_d.data(),
+                        alpaka::getPreferredWarpSize(alpaka::getDev(queue)));
 
     // Store the total number of good cluster candidates into the scalar of the StripDigi SoA
     auto viewSrc_realClusters =
