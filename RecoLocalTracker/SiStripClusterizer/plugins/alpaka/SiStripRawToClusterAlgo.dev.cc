@@ -288,13 +288,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
           // uint8_t chLength = fedChan.length();
           // printf("#chLen,%i,%i,%i,%i,%i\n", fedId, fedCh, fedChOfs, chStripNb, blockStripN[0]);
-          // alpaka::atomicAdd(acc, blockStripN, static_cast<uint32_t>(chStripNb), alpaka::hierarchy::Grids{});
+          // alpaka::atomicAdd(acc, blockStripN, static_cast<uint32_t>(chStripNb), alpaka::hierarchy::Blocks{});
         } else {
           // Atomic add the total number of strips which cannot be unpacked (unlikely case)
           mapping.fedID(chan) = invalidFed;
           mapping.fedChStripsN(chan) = 0;
           // printf("#invFed,%i,%i,%i,%i\n", index, fedId, fedCh, invalidFedCh[0]);
-          alpaka::atomicAdd(acc, invalidFedCh, 1u, alpaka::hierarchy::Grids{});
+          alpaka::atomicAdd(acc, invalidFedCh, 1u, alpaka::hierarchy::Blocks{});
         }
       }
     }
