@@ -334,11 +334,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                                        uint8_t* fedChannelsData,
                                        SiStripDigiView stripDigis,
                                        SiStripMappingConstView mapping,
-                                       const Data* data
-                                       //  SiStripClusterizerConditionsData_fedchConstView Data_fedch,
-                                       //  SiStripClusterizerConditionsData_stripConstView Data_strip,
-                                       //  SiStripClusterizerConditionsData_apvConstView Data_apv
-    ) const {
+                                       const GainNoiseCals* calibs) const {
       // Loop over the FEDChannel collection to be digitized
       for (auto chan : uniform_elements(acc, mapping.metadata().size())) {
         // for (uint32_t chan=0; chan<(uint32_t)mapping.metadata().size(); chan++) {
@@ -351,7 +347,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
           continue;
         }
 
-        const auto ipair = data->iPair[channelIndex(fedId, fedCh)];
+        const auto ipair = calibs->iPair[channelIndex(fedId, fedCh)];
         int ipoff = STRIPS_PER_FEDCH * ipair;
 
         const uint32_t fedChDataOfsBuf = mapping.fedChDataOfsBuf(chan);
@@ -391,7 +387,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                                   SiStripDigiConstView stripDigi,
                                   StripClustersAuxView clusterDataObj,
                                   SiStripMappingConstView mapping,
-                                  const Data* data) const {
+                                  const GainNoiseCals* calibs) const {
       auto nStrips = stripDigi.metadata().size();
       const float seedThreshold = clusterDataObj.seedThreshold();
       for (auto i : uniform_elements(acc, nStrips)) {
@@ -405,7 +401,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         const auto stripID = stripDigi.stripId(i);
 
         const uint32_t idx = stripIndex(fedId, fedCh, stripID);
-        const uint16_t noise_tmp = data->noise[idx];
+        const uint16_t noise_tmp = calibs->noise[idx];
         const bool isBad = (noise_tmp & badBit) > 0;
 
         if (!isBad) {
@@ -462,7 +458,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                                   StripClustersAuxConstView clusterDataObj,
                                   SiStripClusterView clusters,
                                   SiStripMappingConstView mapping,
-                                  const Data* conditionsData) const {
+                                  const GainNoiseCals* calibs) const {
       //
       const int32_t nStrips = stripDataObj.metadata().size();
       const uint32_t nSeedStripsNC = (kMaxSeedStrips < clusterDataObj.prefixSeedStripsNCMask(nStrips - 1))
@@ -495,7 +491,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         const auto stripId = stripIdArr[chan_];
         //
         const uint32_t idx = stripIndex(fedId, fedCh, stripId);
-        const uint16_t noise_tmp = conditionsData->noise[idx];
+        const uint16_t noise_tmp = calibs->noise[idx];
         const float noise_i = 0.1f * (noise_tmp & ~badBit);
 
         // Calculate the accumulated noise2 and ADC
@@ -511,7 +507,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
           const auto test_stripId = stripIdArr[testIndex];
 
           const uint32_t test_idx = stripIndex(test_fedId, test_fedCh, test_stripId);
-          const uint16_t test_noise_tmp = conditionsData->noise[test_idx];
+          const uint16_t test_noise_tmp = calibs->noise[test_idx];
           const bool test_isBad = (test_noise_tmp & badBit) > 0;
 
           const float test_noise_i = 0.1f * (test_noise_tmp & ~badBit);
@@ -611,7 +607,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                                   StripClustersAuxConstView clusterDataObj,
                                   SiStripClusterView clusters,
                                   SiStripMappingConstView mapping,
-                                  const Data* conditionsData) const {
+                                  const GainNoiseCals* calibs) const {
       //
       constexpr uint8_t adc_low_saturation = 254;
       constexpr uint8_t adc_high_saturation = 255;
@@ -642,7 +638,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
               const auto stripId = stripDataObj.stripId(index);
 
               // ThreeThresholdAlgorithm::applyGains
-              const float gain_j = conditionsData->gain[apvIndex(fedId, fedCh, stripId)];
+              const float gain_j = calibs->gain[apvIndex(fedId, fedCh, stripId)];
               uint8_t amplitudes_j = stripDataObj.adc(index);
               const uint16_t charge = static_cast<uint16_t>(static_cast<float>(amplitudes_j) / gain_j + 0.5f);
 
@@ -670,9 +666,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
             const auto fedChL = mapping.fedCh(chanL);
 
             // Flags for siStripClusterTools::chargePerCM in current candidate
-            clusters.candidateAccepted(i) = (clusterDataObj.minGoodCharge() <= 0 ||
-                                             ((chargeSum * conditionsData->invthick[channelIndex(fedIdL, fedChL)]) >
-                                              clusterDataObj.minGoodCharge()));
+            clusters.candidateAccepted(i) =
+                (clusterDataObj.minGoodCharge() <= 0 ||
+                 ((chargeSum * calibs->invthick[channelIndex(fedIdL, fedChL)]) > clusterDataObj.minGoodCharge()));
 
             // SiStripCluster::initQB() -> barycenter_
             const float bary_i = static_cast<float>(sumx) / static_cast<float>(suma);
@@ -821,7 +817,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     alpaka::memcpy(queue, viewDst, viewSrc);
   }
 
-  void SiStripRawToClusterAlgo::unpackStrips(Queue& queue, const Data* conditions_Data) {
+  void SiStripRawToClusterAlgo::unpackStrips(Queue& queue, const GainNoiseCals* calibs) {
     // std::cout << "#kerStrips," << nStrips_h->data()[0] << std::endl;
     // std::cout << "#invalidFed," << invalidFedChN_d.data()[0] << std::endl;
 
@@ -840,7 +836,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                         fedBuffer_d_->data(),
                         digis_d_->view(),
                         stripMapping_d_->const_view(),
-                        conditions_Data);
+                        calibs);
 
     // dumpUnpackedStrips(queue, digis_d_.get()); // (for debugging)
 
@@ -867,7 +863,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                         digis_d_->const_view(),
                         sClustersAux_d_->view(),
                         stripMapping_d_->const_view(),
-                        conditions_Data);
+                        calibs);
 
     // Un-seed any contiguous strips in the same detector
     alpaka::exec<Acc1D>(queue,
@@ -908,7 +904,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
   }
 
   std::unique_ptr<SiStripClusterDevice> SiStripRawToClusterAlgo::makeClusters(Queue& queue,
-                                                                              const Data* conditions_Data) {
+                                                                              const GainNoiseCals* calibs) {
     // The maximum number of clusters is set to kMaxSeedStrips
     auto clusters_d = std::make_unique<SiStripClusterDevice>(kMaxSeedStrips_, queue);
     clusters_d->zeroInitialise(queue);
@@ -930,7 +926,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                         sClustersAux_d_->const_view(),
                         clusters_d->view(),
                         stripMapping_d_->const_view(),
-                        conditions_Data);
+                        calibs);
 
     // dumpClusters(queue, clusters_d.get(), digis_d_.get());
 
@@ -942,7 +938,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
                         sClustersAux_d_->const_view(),
                         clusters_d->view(),
                         stripMapping_d_->const_view(),
-                        conditions_Data);
+                        calibs);
 
     // Fill the prefix indexes for the candidateAccepted
     const uint32_t nThreads = 1024u;

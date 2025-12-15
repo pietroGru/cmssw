@@ -4,6 +4,8 @@
 #include "DataFormats/Portable/interface/PortableHostCollection.h"
 #include "DataFormats/Portable/interface/alpaka/PortableCollection.h"
 
+#include "DataFormats/FEDRawData/interface/FEDRawData.h"
+
 #include "DataFormats/SiStripClusterSoA/interface/alpaka/SiStripClusterDevice.h"
 #include "DataFormats/SiStripDigiSoA/interface/alpaka/SiStripDigiDevice.h"
 
@@ -115,9 +117,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     void prepareUnpackCluster(Queue& queue,
                               const DetToFeds* conditions_DetToFeds,
                               std::unique_ptr<PortableFEDMover> FEDChMover);
-    void unpackStrips(Queue& queue, const Data* conditions_Data);
+    void unpackStrips(Queue& queue, const GainNoiseCals* calibs);
 
-    std::unique_ptr<SiStripClusterDevice> makeClusters(Queue& queue, const Data* conditions_Data);
+    std::unique_ptr<SiStripClusterDevice> makeClusters(Queue& queue, const GainNoiseCals* calibs);
     std::unique_ptr<SiStripDigiDevice> releaseDigiAmplitudes(Queue& queue);
 
   private:

@@ -2,4 +2,4 @@
 #include "FWCore/Framework/interface/eventsetuprecord_registration_macro.h"
 
 EVENTSETUP_RECORD_REG(sistrip::SiStripClusterizerConditionsDetToFedsRecord);
-EVENTSETUP_RECORD_REG(sistrip::SiStripClusterizerConditionsDataRecord);
+EVENTSETUP_RECORD_REG(sistrip::SiStripClusterizerConditionsGainNoiseCalsRecord);

@@ -50,7 +50,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     edm::ESGetToken<SiStripClusterizerConditions, SiStripClusterizerConditionsRcd> stripCondGetToken_;
     device::ESGetToken<SiStripClusterizerConditionsDetToFedsDeviceObject, SiStripClusterizerConditionsDetToFedsRecord>
         stripCablCondGetToken_;
-    device::ESGetToken<SiStripClusterizerConditionsDataDeviceObject, SiStripClusterizerConditionsDataRecord>
+    device::ESGetToken<SiStripClusterizerConditionsGainNoiseCalsDeviceObject,
+                       SiStripClusterizerConditionsGainNoiseCalsRecord>
         stripDataCondGetToken_;
     device::EDPutToken<SiStripClusterDevice> stripClustPutToken_;
     device::EDPutToken<SiStripDigiDevice> stripDigiPutToken_;

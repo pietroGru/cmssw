@@ -10,7 +10,7 @@ namespace sistrip {
     std::array<bool, NUMBER_OF_FEDS * FEDCH_PER_FED> qualityOk;
   };
 
-  struct Data {
+  struct GainNoiseCals {
     std::array<uint32_t, NUMBER_OF_FEDS * FEDCH_PER_FED> detID;
     std::array<float, NUMBER_OF_FEDS * FEDCH_PER_FED> invthick;
     std::array<float, NUMBER_OF_FEDS * FEDCH_PER_FED * APVS_PER_FEDCH> gain;

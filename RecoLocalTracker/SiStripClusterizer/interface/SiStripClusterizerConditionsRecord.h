@@ -10,9 +10,9 @@ namespace sistrip {
       : public edm::eventsetup::DependentRecordImplementation<SiStripClusterizerConditionsDetToFedsRecord,
                                                               edm::mpl::Vector<SiStripQualityRcd>> {};
 
-  class SiStripClusterizerConditionsDataRecord
+  class SiStripClusterizerConditionsGainNoiseCalsRecord
       : public edm::eventsetup::DependentRecordImplementation<
-            SiStripClusterizerConditionsDataRecord,
+            SiStripClusterizerConditionsGainNoiseCalsRecord,
             edm::mpl::Vector<SiStripGainRcd, SiStripNoisesRcd, SiStripQualityRcd>> {};
 }  // namespace sistrip
 
