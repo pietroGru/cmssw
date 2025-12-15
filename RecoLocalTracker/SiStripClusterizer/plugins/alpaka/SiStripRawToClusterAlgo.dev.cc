@@ -813,14 +813,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     nStrips_h_ = cms::alpakatools::make_host_buffer<uint32_t>(queue);
     const uint32_t size = stripMapping_d_->view().metadata().size();
     auto viewSrc = make_device_view(queue, stripMapping_d_->view().fedChStripsN(size - 1));
-    auto viewDst = make_host_view(*nStrips_h_->data());
-    alpaka::memcpy(queue, viewDst, viewSrc);
+    alpaka::memcpy(queue, *nStrips_h_, viewSrc);
   }
 
   void SiStripRawToClusterAlgo::unpackStrips(Queue& queue, const GainNoiseCals* calibs) {
-    // std::cout << "#kerStrips," << nStrips_h->data()[0] << std::endl;
-    // std::cout << "#invalidFed," << invalidFedChN_d.data()[0] << std::endl;
-
     // Allocate the SiStripDigi collection on device
     const uint32_t nStrips = *nStrips_h_->data();
     digis_d_ = std::make_unique<SiStripDigiDevice>(nStrips, queue);
@@ -892,10 +888,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     // Get the total number of non-contiguous seeds (ready on the host in produce)
     nSeeds_h_ = cms::alpakatools::make_host_buffer<uint32_t>(queue);
     auto viewSrc = make_device_view(queue, sClustersAux_d_->view().prefixSeedStripsNCMask(nStrips - 1));
-    //alpaka::ViewPlainPtr<alpaka::DevCpu, unsigned int, std::integral_constant<unsigned long, 0>, unsigned int>
-    auto viewDst = make_host_view(*nSeeds_h_->data());
-    //alpaka::ViewPlainPtr<alpaka::DevCpu, unsigned int, std::integral_constant<unsigned long, 0>, unsigned int>
-    alpaka::memcpy(queue, viewDst, viewSrc);
+    alpaka::memcpy(queue, *nSeeds_h_, viewSrc);
 
     // Find index of the non-contiguous strip seeds
     alpaka::exec<Acc1D>(queue, workDiv, SiStripKer_setNCStripIndex{}, sClustersAux_d_->view());
