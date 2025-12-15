@@ -395,9 +395,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         clusterDataObj.seedStripsNCMask(i) = 0;
         clusterDataObj.prefixSeedStripsNCMask(i) = 0;
 
-        const auto chan_ = stripDigi.channel(i);
-        const auto fedId = mapping.fedID(chan_);
-        const auto fedCh = mapping.fedCh(chan_);
+        const auto ch = stripDigi.channel(i);
+        const auto fedId = mapping.fedID(ch);
+        const auto fedCh = mapping.fedCh(ch);
         const auto stripID = stripDigi.stripId(i);
 
         const uint32_t idx = stripIndex(fedId, fedCh, stripID);
@@ -482,13 +482,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
       // Loop over only the non-contiguous strips (flagged in setStripIndex)
       for (auto i : uniform_elements(acc, nSeedStripsNC)) {
-        const uint32_t chan_ = clusterDataObj.seedStripsNCIndex(i);
+        const uint32_t ch = clusterDataObj.seedStripsNCIndex(i);
 
-        const auto chan = chanArr[chan_];
+        const auto chan = chanArr[ch];
         const auto fedId = mapping.fedID(chan);
         const auto fedCh = mapping.fedCh(chan);
         const auto detId = mapping.detID(chan);
-        const auto stripId = stripIdArr[chan_];
+        const auto stripId = stripIdArr[ch];
         //
         const uint32_t idx = stripIndex(fedId, fedCh, stripId);
         const uint16_t noise_tmp = calibs->noise[idx];
@@ -497,8 +497,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         // Calculate the accumulated noise2 and ADC
         uint16_t clSize = 1;
         float noiseSquared_i = noise_i * noise_i;
-        float adcSum_i = adcArr[chan_];
-        int32_t testIndex = chan_ - 1;
+        float adcSum_i = adcArr[ch];
+        int32_t testIndex = ch - 1;
 
         auto addtocluster = [&](int& indexLR) {
           const auto test_chan = chanArr[testIndex];
@@ -522,7 +522,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         };
 
         // find left boundary
-        int32_t indexLeft = chan_;
+        int32_t indexLeft = ch;
 
         // if (stripIdArr[testIndex] == invalidStrip && testIndex >= 0) {
         //   testIndex -= 2;
@@ -554,8 +554,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         }  // testIndex >= 0
 
         // find right boundary
-        int32_t indexRight = chan_;
-        testIndex = chan_ + 1;
+        int32_t indexRight = ch;
+        testIndex = ch + 1;
 
         // if (stripIdArr[testIndex] == invalidStrip && testIndex < nStrips) {
         //   testIndex += 2;
@@ -963,9 +963,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     return clusters_d;
   }
 
-  std::unique_ptr<SiStripDigiDevice> SiStripRawToClusterAlgo::releaseDigiAmplitudes() {
-    return std::move(digis_d_);
-  }
+  std::unique_ptr<SiStripDigiDevice> SiStripRawToClusterAlgo::releaseDigiAmplitudes() { return std::move(digis_d_); }
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip
 
 // Debugging functions
