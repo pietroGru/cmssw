@@ -106,13 +106,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     std::unique_ptr<SiStripClusterizerConditionsGainNoiseCalsHostObject> produceData(
         SiStripClusterizerConditionsGainNoiseCalsRecord const& iRecord) {
       auto gains = iRecord.getTransientHandle(gainsToken_);
-      const auto& noises = iRecord.get(noisesToken_);
-      const auto& quality = iRecord.get(qualityTokenB_);
+      auto noises = iRecord.getTransientHandle(noisesToken_);
+      auto quality = iRecord.getTransientHandle(qualityTokenB_);
 
       // Prepare the conditions on the host
       auto product = std::make_unique<SiStripClusterizerConditionsGainNoiseCalsHostObject>(cms::alpakatools::host());
       // Fill the collections
-      fillSiStripClusterizerConditions(quality, gains.product(), noises, *product->data());
+      fillSiStripClusterizerConditions(quality.product(), gains.product(), noises.product(), *product->data());
       //
       return product;
     }
@@ -139,17 +139,17 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     edm::ESGetToken<SiStripQuality, SiStripQualityRcd> qualityTokenB_;
 
     // Make conditions as in the RecoLocalTracker/SiStripClusterizer/plugins/ClustersFromRawProducer.cc module
-    void fillSiStripClusterizerConditions(const SiStripQuality& quality,
+    void fillSiStripClusterizerConditions(const SiStripQuality* quality,
                                           const SiStripGain* gains,
-                                          const SiStripNoises& noises,
+                                          const SiStripNoises* noises,
                                           GainNoiseCals& calibs);
   };
 
-  void SiStripClusterizerConditionsESProducerAlpaka::fillSiStripClusterizerConditions(const SiStripQuality& quality,
+  void SiStripClusterizerConditionsESProducerAlpaka::fillSiStripClusterizerConditions(const SiStripQuality* quality,
                                                                                       const SiStripGain* gains,
-                                                                                      const SiStripNoises& noises,
+                                                                                      const SiStripNoises* noises,
                                                                                       GainNoiseCals& calibs) {
-    //
+    // Alias the members
     auto& invthick = calibs.invthick;
     auto& detID = calibs.detID;
     auto& iPair = calibs.iPair;
@@ -158,15 +158,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
     // connected: map<DetID, std::vector<int>>
     // map of KEY=detid DATA=vector of apvs, maximum 6 APVs per detector module :
-    const auto& connected = quality.cabling()->connected();
+    const auto& connected = quality->cabling()->connected();
     // detCabling: map<DetID, std::vector<const FedChannelConnection*>
     // map of KEY=detid DATA=vector<FedChannelConnection>
-    const auto& detCabling = quality.cabling()->getDetCabling();
+    const auto& detCabling = quality->cabling()->getDetCabling();
 
     for (const auto& conn : connected) {
       const auto det = conn.first;
 
-      if (!quality.IsModuleBad(det)) {
+      if (!quality->IsModuleBad(det)) {
         const auto detConn_it = detCabling.find(det);
 
         const auto gainRange = gains->getRange(det);
@@ -187,8 +187,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
               auto offset = STRIPS_PER_FEDCH * chan_apvPairNumber;
               for (uint16_t strip = 0; strip < STRIPS_PER_FEDCH; ++strip) {
                 const auto detstrip = strip + offset;
-                const uint16_t strip_noise = SiStripNoises::getRawNoise(detstrip, noises.getRange(det));
-                const auto bad = quality.IsStripBad(quality.getRange(det), detstrip);
+                const uint16_t strip_noise = SiStripNoises::getRawNoise(detstrip, noises->getRange(det));
+                const auto bad = quality->IsStripBad(quality->getRange(det), detstrip);
 
                 // setStrip_(chan_fedID, chan_fedCh, detstrip, noise, gain, bad);
                 if (bad) [[unlikely]] {
