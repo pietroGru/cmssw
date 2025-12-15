@@ -103,27 +103,27 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
       return product;
     }
 
-    std::unique_ptr<SiStripClusterizerConditionsDataHostObject> produceData(
-        SiStripClusterizerConditionsDataRecord const& iRecord) {
+    std::unique_ptr<SiStripClusterizerConditionsGainNoiseCalsHostObject> produceData(
+        SiStripClusterizerConditionsGainNoiseCalsRecord const& iRecord) {
       auto gains = iRecord.getTransientHandle(gainsToken_);
       const auto& noises = iRecord.get(noisesToken_);
       const auto& quality = iRecord.get(qualityTokenB_);
 
       // Prepare the conditions on the host
-      auto product = std::make_unique<SiStripClusterizerConditionsDataHostObject>(cms::alpakatools::host());
-      const int Data_fedch_size = (*product)->invthick.size();  // 42240
-      const int Data_strip_size = (*product)->noise.size();     // 10813440
-      const int Data_apv_size = (*product)->gain.size();        // 84480
+      auto product = std::make_unique<SiStripClusterizerConditionsGainNoiseCalsHostObject>(cms::alpakatools::host());
+      const int fedCh_size = (*product)->invthick.size();  // 42240
+      const int strip_size = (*product)->noise.size();     // 10813440
+      const int apv_size = (*product)->gain.size();        // 84480
 
       // Fill the collections
       fillSiStripClusterizerConditions(quality,
                                        gains.product(),
                                        noises,
-                                       std::span((*product)->invthick.data(), Data_fedch_size),
-                                       std::span((*product)->detID.data(), Data_fedch_size),
-                                       std::span((*product)->iPair.data(), Data_fedch_size),
-                                       std::span((*product)->noise.data(), Data_strip_size),
-                                       std::span((*product)->gain.data(), Data_apv_size));
+                                       std::span((*product)->invthick.data(), fedCh_size),
+                                       std::span((*product)->detID.data(), fedCh_size),
+                                       std::span((*product)->iPair.data(), fedCh_size),
+                                       std::span((*product)->noise.data(), strip_size),
+                                       std::span((*product)->gain.data(), apv_size));
       //
       return product;
     }

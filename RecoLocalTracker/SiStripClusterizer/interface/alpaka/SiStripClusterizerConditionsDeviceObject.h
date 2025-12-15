@@ -13,7 +13,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     // make the names from the top-level sistrip namespace visible for unqualified lookup
     using namespace ::sistrip;
     using SiStripClusterizerConditionsDetToFedsDeviceObject = PortableObject<DetToFeds>;
-    using SiStripClusterizerConditionsDataDeviceObject = PortableObject<Data>;
+    using SiStripClusterizerConditionsGainNoiseCalsDeviceObject = PortableObject<GainNoiseCals>;
   }  // namespace sistrip
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
@@ -21,7 +21,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 // check that the portable device collection for the host device is the same as the portable host collection
 ASSERT_DEVICE_MATCHES_HOST_COLLECTION(sistrip::SiStripClusterizerConditionsDetToFedsDeviceObject,
                                       sistrip::SiStripClusterizerConditionsDetToFedsHostObject);
-ASSERT_DEVICE_MATCHES_HOST_COLLECTION(sistrip::SiStripClusterizerConditionsDataDeviceObject,
-                                      sistrip::SiStripClusterizerConditionsDataHostObject);
+ASSERT_DEVICE_MATCHES_HOST_COLLECTION(sistrip::SiStripClusterizerConditionsGainNoiseCalsDeviceObject,
+                                      sistrip::SiStripClusterizerConditionsGainNoiseCalsHostObject);
 
 #endif

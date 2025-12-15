@@ -7,7 +7,7 @@
 
 namespace sistrip {
   using SiStripClusterizerConditionsDetToFedsHostObject = PortableHostObject<DetToFeds>;
-  using SiStripClusterizerConditionsDataHostObject = PortableHostObject<Data>;
+  using SiStripClusterizerConditionsGainNoiseCalsHostObject = PortableHostObject<GainNoiseCals>;
 }  // namespace sistrip
 
 #endif
