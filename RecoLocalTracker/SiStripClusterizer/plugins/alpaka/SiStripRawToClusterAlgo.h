@@ -120,7 +120,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     void unpackStrips(Queue& queue, const GainNoiseCals* calibs);
 
     std::unique_ptr<SiStripClusterDevice> makeClusters(Queue& queue, const GainNoiseCals* calibs);
-    std::unique_ptr<SiStripDigiDevice> releaseDigiAmplitudes(Queue& queue);
+    std::unique_ptr<SiStripDigiDevice> releaseDigiAmplitudes();
 
   private:
     // Clusterizer parameters

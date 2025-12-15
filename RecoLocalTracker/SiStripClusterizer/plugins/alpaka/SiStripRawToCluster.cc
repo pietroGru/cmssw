@@ -133,7 +133,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     auto cluster_d = algo_.makeClusters(iEvent.queue(), stripDataCond.const_data());
 
     // Get the clusters amplitudes
-    auto clusterAmpls_d = algo_.releaseDigiAmplitudes(iEvent.queue());
+    auto clusterAmpls_d = algo_.releaseDigiAmplitudes();
 
     iEvent.put(stripClustPutToken_, std::move(cluster_d));
     iEvent.put(stripDigiPutToken_, std::move(clusterAmpls_d));
