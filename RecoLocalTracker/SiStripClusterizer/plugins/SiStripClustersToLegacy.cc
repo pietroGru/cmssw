@@ -117,7 +117,7 @@ namespace sistrip {
   void SiStripClustersToLegacy::dumpClusters(edmNew::DetSetVector<SiStripCluster>* detSetClusters) const {
     int clustersAlloc = detSetClusters->dataSize();
 
-    std::ostringstream dumpMsg("");
+    std::ostringstream dumpMsg;
     dumpMsg << "#clDump,Produced:" << clustersAlloc << "\n";
     dumpMsg << "i,cIdx,cSz,cDetId,chg,1st,tCl,bary,|clusterADCs|\n";
 
