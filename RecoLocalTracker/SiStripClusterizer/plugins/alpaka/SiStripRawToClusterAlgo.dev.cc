@@ -970,7 +970,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     return clusters_d;
   }
 
-  std::unique_ptr<SiStripDigiDevice> SiStripRawToClusterAlgo::releaseDigiAmplitudes(Queue& queue) {
+  std::unique_ptr<SiStripDigiDevice> SiStripRawToClusterAlgo::releaseDigiAmplitudes() {
     return std::move(digis_d_);
   }
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip
