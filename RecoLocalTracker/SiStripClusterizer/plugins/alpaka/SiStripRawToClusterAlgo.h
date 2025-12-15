@@ -67,8 +67,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         : buffer_(cms::alpakatools::make_host_buffer<uint8_t[]>(queue, rawBufferSize)),
           mapping_(fedChannelsNb, queue),
           bufferSize_(0),
-          channelNb_(0),
-          fedChannelNb_(fedChannelsNb),
+          channelNb_(fedChannelsNb),
           offset4FedId_(sistrip::FED_ID_MAX + 1) {}
 
     void fillBuffer(const std::vector<const FEDRawData*>& raw) {
@@ -82,7 +81,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     }
 
     void fillMapping(const std::vector<FEDChMetadata>& channelsMeta) {
-      for (uint32_t i = 0; i < fedChannelNb_; i++, channelNb_++) {
+      for (uint32_t i = 0; i < channelNb_; i++) {
         const auto& channel = channelsMeta[i];
         mapping_->detID(i) = channel.detId;
         mapping_->fedID(i) = channel.fedId;
@@ -105,7 +104,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
     uint32_t bufferSize_;
     uint32_t channelNb_;
-    uint32_t fedChannelNb_;
     std::vector<uint32_t> offset4FedId_;
   };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip
