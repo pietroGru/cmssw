@@ -822,7 +822,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     // std::cout << "#invalidFed," << invalidFedChN_d.data()[0] << std::endl;
 
     // Allocate the SiStripDigi collection on device
-    const uint32_t nStrips = nStrips_h_->data()[0];
+    const uint32_t nStrips = *nStrips_h_->data();
     digis_d_ = std::make_unique<SiStripDigiDevice>(nStrips, queue);
 
     // Run the unpacking kernel
@@ -910,7 +910,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     clusters_d->zeroInitialise(queue);
 
     // The number of seed over which to loop for clusters is the min between the number of strips and the kMaxSeeds
-    const uint32_t nStrips = nStrips_h_->data()[0];
+    const uint32_t nStrips = *nStrips_h_->data();
     const uint32_t nSeeds = std::min(kMaxSeedStrips_, nStrips);
 
     uint32_t divider = 256u;
