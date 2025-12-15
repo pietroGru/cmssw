@@ -111,19 +111,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
       // Prepare the conditions on the host
       auto product = std::make_unique<SiStripClusterizerConditionsGainNoiseCalsHostObject>(cms::alpakatools::host());
-      const int fedCh_size = (*product)->invthick.size();  // 42240
-      const int strip_size = (*product)->noise.size();     // 10813440
-      const int apv_size = (*product)->gain.size();        // 84480
-
       // Fill the collections
-      fillSiStripClusterizerConditions(quality,
-                                       gains.product(),
-                                       noises,
-                                       std::span((*product)->invthick.data(), fedCh_size),
-                                       std::span((*product)->detID.data(), fedCh_size),
-                                       std::span((*product)->iPair.data(), fedCh_size),
-                                       std::span((*product)->noise.data(), strip_size),
-                                       std::span((*product)->gain.data(), apv_size));
+      fillSiStripClusterizerConditions(quality, gains.product(), noises, *product->data());
       //
       return product;
     }
@@ -153,21 +142,20 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     void fillSiStripClusterizerConditions(const SiStripQuality& quality,
                                           const SiStripGain* gains,
                                           const SiStripNoises& noises,
-                                          std::span<float> invthick,
-                                          std::span<uint32_t> detID,
-                                          std::span<uint16_t> iPair,
-                                          std::span<uint16_t> noise,
-                                          std::span<float> gain);
+                                          GainNoiseCals& calibs);
   };
 
   void SiStripClusterizerConditionsESProducerAlpaka::fillSiStripClusterizerConditions(const SiStripQuality& quality,
                                                                                       const SiStripGain* gains,
                                                                                       const SiStripNoises& noises,
-                                                                                      std::span<float> invthick,
-                                                                                      std::span<uint32_t> detID,
-                                                                                      std::span<uint16_t> iPair,
-                                                                                      std::span<uint16_t> noise,
-                                                                                      std::span<float> gain) {
+                                                                                      GainNoiseCals& calibs) {
+    //
+    auto& invthick = calibs.invthick;
+    auto& detID = calibs.detID;
+    auto& iPair = calibs.iPair;
+    auto& noise = calibs.noise;
+    auto& gain = calibs.gain;
+
     // connected: map<DetID, std::vector<int>>
     // map of KEY=detid DATA=vector of apvs, maximum 6 APVs per detector module :
     const auto& connected = quality.cabling()->connected();
