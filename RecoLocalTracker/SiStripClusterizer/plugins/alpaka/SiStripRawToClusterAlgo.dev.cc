@@ -19,24 +19,7 @@
 namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip::fedchannelunpacker {
   enum class StatusCode { SUCCESS = 0, BAD_CHANNEL_LENGTH, UNORDERED_DATA, BAD_PACKET_CODE, ZERO_PACKET_CODE };
   namespace detail {
-    template <uint8_t num_words>
-    ALPAKA_FN_HOST_ACC uint16_t getADC_W(const uint8_t* data, uint_fast16_t offset, uint8_t bits_shift) {
-      // get ADC from one or two bytes (at most 10 bits), and shift if needed
-      return (data[offset ^ 7] + (num_words == 2 ? ((data[(offset + 1) ^ 7] & 0x03) << 8) : 0)) << bits_shift;
-    }
-
-    template <uint16_t mask>
-    ALPAKA_FN_HOST_ACC uint16_t getADC_B2(const uint8_t* data, uint_fast16_t wOffset, uint_fast8_t bOffset) {
-      // get ADC from two bytes, from wOffset until bOffset bits from the next byte (maximum decided by mask)
-      return (((data[wOffset ^ 7]) << bOffset) + (data[(wOffset + 1) ^ 7] >> (BITS_PER_BYTE - bOffset))) & mask;
-    }
-
-    template <uint16_t mask>
-    ALPAKA_FN_HOST_ACC uint16_t getADC_B1(const uint8_t* data, uint_fast16_t wOffset, uint_fast8_t bOffset) {
-      // get ADC from one byte, until bOffset into the byte at wOffset (maximum decided by mask)
-      return (data[wOffset ^ 7] >> (BITS_PER_BYTE - bOffset)) & mask;
-    }
-
+    // (adapted from https://github.com/cms-sw/cmssw/blob/CMSSW_16_0_X/EventFilter/SiStripRawToDigi/interface/SiStripFEDBuffer.h#L263
     template <uint8_t num_bits>
     ALPAKA_FN_HOST_ACC StatusCode unpackZSW(uint32_t chan,
                                             const uint8_t* channel_data,
@@ -50,7 +33,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip::fedchannelunpacker {
       constexpr auto num_words = num_bits / 8;
       static_assert(((num_bits % 8) == 0) && (num_words > 0) && (num_words < 3));
       if (channel_length & 0xF000) {
-        printf("FEDBuffer | Channel length is invalid. Channel length is %i\n", channel_length);
         return StatusCode::BAD_CHANNEL_LENGTH;
       }
       const uint8_t* const data = channel_data;
@@ -69,24 +51,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip::fedchannelunpacker {
             // LogDebug("FEDBuffer") << "First strip of new cluster is not greater than last strip of previous cluster. "
             //                       << "Last strip of previous cluster is " << uint16_t(firstStrip + inCluster) << ". "
             //                       << "First strip of new cluster is " << uint16_t(newFirstStrip) << ".";
-            // printf("StatusCode::UNORDERED_DATA");
             return StatusCode::UNORDERED_DATA;
           }
           firstStrip = newFirstStrip;
           nInCluster = data[(offset++) ^ 7];
           inCluster = 0;
-          // out.stripId(++(*aoffIdx)) = 0xFFFF; // wonder what is the reason for these offsets
-          // from my investigation, there is always a call at the begin and end of the cluster.
-          // If this is a general property, then these two rows of the out StripDigiView could be saved for each unpackZSW call
-          // for (int i = 0; i < 2; ++i, ++(*aoffIdx)) {
-          //   out.stripId(*aoffIdx) = 0xFFFF;
-          //   out.adc(*aoffIdx) = 0;
-          // }
         }
-        // assert(*aoffIdx!=23);
         out.channel(*aoffIdx) = chan;
         out.stripId(*aoffIdx) = stripStart + firstStrip + inCluster;
-        out.adc(*aoffIdx) = getADC_W<num_words>(data, offset, bits_shift);
+        out.adc(*aoffIdx) = ::sistrip::fedchannelunpacker::detail::getADC_W<num_words>(data, offset, bits_shift);
         (*aoffIdx)++;
         offset += num_words;
         ++inCluster;
@@ -94,7 +67,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip::fedchannelunpacker {
       return StatusCode::SUCCESS;
     }
 
-    // Generic implementation (for 10bit, essentially)
+    // (adapted from https://github.com/cms-sw/cmssw/blob/CMSSW_16_0_X/EventFilter/SiStripRawToDigi/interface/SiStripFEDBuffer.h#L301)
     template <uint_fast8_t num_bits>
     ALPAKA_FN_HOST_ACC StatusCode unpackZSB(uint32_t chan,
                                             const uint8_t* channel_data,
@@ -106,8 +79,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip::fedchannelunpacker {
                                             uint16_t stripStart) {
       constexpr uint16_t mask = (1 << num_bits) - 1;
       if (channel_length & 0xF000) {
-        // LogDebug("FEDBuffer") << "Channel length is invalid. Channel length is " << uint16_t(channel.length()) << ".";
-        // printf("[%i] | BAD_CHANNEL_LENGTH\n", *idx);
         return StatusCode::BAD_CHANNEL_LENGTH;
       }
       uint_fast16_t wOffset = channel_offset + headerLength;  // header is 2 (lite) or 7
@@ -140,11 +111,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip::fedchannelunpacker {
         bOffset += num_bits;
         if ((num_bits > BITS_PER_BYTE) || (bOffset > BITS_PER_BYTE)) {
           bOffset -= BITS_PER_BYTE;
-          out.adc(*idx) = getADC_B2<mask>(channel_data, wOffset, bOffset);
+          out.adc(*idx) = ::sistrip::fedchannelunpacker::detail::getADC_B2<mask>(channel_data, wOffset, bOffset);
           (*idx)++;
           ++wOffset;
         } else {
-          out.adc(*idx) = getADC_B1<mask>(channel_data, wOffset, bOffset);
+          out.adc(*idx) = ::sistrip::fedchannelunpacker::detail::getADC_B1<mask>(channel_data, wOffset, bOffset);
           (*idx)++;
         }
         out.channel(*idx) = chan;
@@ -157,18 +128,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip::fedchannelunpacker {
       }
       return StatusCode::SUCCESS;
     }
-
-    ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE uint16_t readoutOrder(uint16_t physical_order) {
-      return (4 * ((static_cast<uint16_t>((static_cast<float>(physical_order) / 8.0))) % 4) +
-              static_cast<uint16_t>(static_cast<float>(physical_order) / 32.0) + 16 * (physical_order % 8));
-    }
   }  // namespace detail
 
   namespace checks {
+    // (adapted from https://github.com/cms-sw/cmssw/blob/CMSSW_16_0_X/EventFilter/SiStripRawToDigi/interface/SiStripFEDBuffer.h#L391)
     ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE bool isNonLiteZS(uint8_t mode) { return (mode == 10 || mode == 11); }
   }  // namespace checks
 
   namespace unpackers {
+    // (adapted from https://github.com/cms-sw/cmssw/blob/CMSSW_16_0_X/EventFilter/SiStripRawToDigi/interface/SiStripFEDBuffer.h#L451)
     ALPAKA_FN_HOST_ACC StatusCode unpackZeroSuppressed2(uint32_t chanIdx,
                                                         const uint8_t* channel_data,
                                                         uint16_t channel_length,
