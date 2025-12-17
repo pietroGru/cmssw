@@ -143,7 +143,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
     // Debug functions
     void dumpUnpackedStrips(Queue& queue, SiStripDigiDevice* digis_d);
-    void dumpSeeds(Queue& queue, SiStripDigiDevice* digis_d, StripClustersAuxDevice* sClustersAux_d);
+    void dumpSeeds(Queue& queue,
+                   SiStripDigiDevice* digis_d,
+                   StripClustersAuxDevice* sClustersAux_d,
+                   SiStripMappingDevice* mapping_d);
     void dumpClusters(Queue& queue, SiStripClusterDevice* clusters_d, SiStripDigiDevice* digis_d);
   };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip

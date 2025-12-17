@@ -838,7 +838,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     // Find index of the non-contiguous strip seeds
     alpaka::exec<Acc1D>(queue, workDiv, SiStripKer_setNCStripIndex{}, sClustersAux_d_->view());
 
-    // dumpSeeds(queue, digis_d_.get(), sClustersAux_d_.get()); // (for debugging)
+    // dumpSeeds(queue, digis_d_.get(), sClustersAux_d_.get(), &stripMapping_d_.value()); // (for debugging)
   }
 
   std::unique_ptr<SiStripClusterDevice> SiStripRawToClusterAlgo::makeClusters(Queue& queue,
@@ -933,7 +933,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
   void SiStripRawToClusterAlgo::dumpSeeds(Queue& queue,
                                           SiStripDigiDevice* digis_d,
-                                          StripClustersAuxDevice* sClustersAux_d) {
+                                          StripClustersAuxDevice* sClustersAux_d,
+                                          SiStripMappingDevice* mapping_d) {
     // Store the size of the digi to avoid repetitions
     const int digisSize = digis_d->const_view().metadata().size();
     auto digis_h = SiStripDigiHost(digisSize, queue);
@@ -941,18 +942,22 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     // Seed table and digis have the same size
     auto sClustersAux_h = StripClustersAuxHost(digisSize, queue);
     alpaka::memcpy(queue, sClustersAux_h.buffer(), sClustersAux_d->const_buffer());
+    // Mapping table
+    auto mapping_h = SiStripMappingHost(mapping_d->const_view().metadata().size(), queue);
+    alpaka::memcpy(queue, mapping_h.buffer(), mapping_d->const_buffer());
     alpaka::wait(queue);
 
-    std::ostringstream dumpMsg("");
+    std::ostringstream dumpMsg;
     dumpMsg << "[SiStripRawToClusterAlgo::setSeedsAndMakeIndexes] Dumping seeds table\n";
-    dumpMsg << "i\tadc\tchan\tstripId\tseed\tseedNC\tpfxNCMask\tseedNCIndex\n";
+    dumpMsg << "i,adc,chan,stripId,detId,seed,seedNC,pfxNCMask,seedNCIndex\n";
     for (int i = 0; i < digisSize; ++i) {
-      if (i < 50 || i > (digisSize - 50) || i % 10000 == 0) {
+      if (i < 600 || i > (digisSize - 600) || i % 10000 == 0) {
         if (digis_h->stripId(i) != invalidStrip) {
-          dumpMsg << i << "\t" << (int)(digis_h->adc(i)) << "\t" << digis_h->channel(i) << "\t\t\t\t"
-                  << digis_h->stripId(i) << "\t\t\t" << sClustersAux_h->seedStripsMask(i) << "\t\t\t"
-                  << sClustersAux_h->seedStripsNCMask(i) << "\t\t\t\t" << sClustersAux_h->prefixSeedStripsNCMask(i)
-                  << "\t\t\t\t\t" << sClustersAux_h->seedStripsNCIndex(i) << "\n";
+          const auto chan = digis_h->channel(i);
+          dumpMsg << i << "," << (int)(digis_h->adc(i)) << "," << digis_h->channel(i) << "," << digis_h->stripId(i)
+                  << "," << mapping_h->detID(chan) << "," << sClustersAux_h->seedStripsMask(i) << ","
+                  << sClustersAux_h->seedStripsNCMask(i) << "," << sClustersAux_h->prefixSeedStripsNCMask(i) << ","
+                  << sClustersAux_h->seedStripsNCIndex(i) << "\n";
         }
       }
     }
