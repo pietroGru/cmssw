@@ -908,7 +908,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     return clusters_d;
   }
 
-  std::unique_ptr<SiStripDigiDevice> SiStripRawToClusterAlgo::releaseDigiAmplitudes() { return std::move(digis_d_); }
+  std::unique_ptr<SiStripDigiDevice> SiStripRawToClusterAlgo::releaseDigiAmplitudes() {
+    // Allow the release of device memory (when queue completes)
+    sClustersAux_d_.reset();
+    return std::move(digis_d_);
+  }
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip
 
 // Debugging functions
