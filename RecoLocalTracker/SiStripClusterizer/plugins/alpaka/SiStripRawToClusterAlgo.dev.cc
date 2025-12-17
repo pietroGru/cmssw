@@ -938,7 +938,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
   void SiStripRawToClusterAlgo::dumpClusters(Queue& queue,
                                              SiStripClusterDevice* clusters_d,
-                                             SiStripDigiDevice* digis_d) {
+                                             SiStripDigiDevice* digis_d,
+                                             bool fullDump) {
     // Store the size of the digi to avoid repetitions
     const int clustersPrealloc = clusters_d->view().metadata().size();
     auto clusters_h = SiStripClusterHost(clustersPrealloc, queue);
@@ -957,7 +958,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     dumpMsg << "i,cIdx,cSz,cDetId,chg,1st,tCl,tClIdx,bary,|clusterADCs|\n";
 
     for (int i = 0; i < clustersN; ++i) {
-      if (i < 100 || i > (clustersN - 100)) {
+      if (fullDump || i < 100 || i > (clustersN - 100)) {
         dumpMsg << i << "," << clusters_h->clusterIndex(i) << "," << clusters_h->clusterSize(i) << ","
                 << clusters_h->clusterDetId(i) << "," << clusters_h->charge(i) << "," << clusters_h->firstStrip(i)
                 << "," << clusters_h->candidateAccepted(i) << "," << clusters_h->candidateAcceptedPrefix(i) << ","
