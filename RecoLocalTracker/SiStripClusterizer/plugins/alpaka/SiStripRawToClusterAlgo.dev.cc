@@ -686,7 +686,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     stripMapping_d_ = cms::alpakatools::moveToDeviceAsync(queue, fedChMover_->mapping());
 
     // Apply quality conditions to mapping and calculate the number of strips to unpack
-    uint32_t divider = 32u;
+    uint32_t divider = 256u;
     uint32_t groups = divide_up_by(fedChMover_->channelNb(), divider);
     auto workDiv = make_workdiv<Acc1D>(groups, divider);
 
@@ -735,7 +735,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     digis_d_ = std::make_unique<SiStripDigiDevice>(nStrips, queue);
 
     // Run the unpacking kernel
-    uint32_t divider = 32u;
+    uint32_t divider = 256u;
     uint32_t nChannels = (*stripMapping_d_)->metadata().size();
     uint32_t groups = divide_up_by(nChannels, divider);
     auto workDiv = make_workdiv<Acc1D>(groups, divider);
