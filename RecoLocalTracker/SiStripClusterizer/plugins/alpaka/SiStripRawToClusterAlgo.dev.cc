@@ -681,61 +681,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
       }  // i < nSeedStripsNC
     }
   };
-
-  class SiStripKer_blkPfxScan {
-  public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_ACC void operator()(TAcc const& acc, StripClustersAuxView clusterDataObj) const {
-      //
-      // This kernel must run with a single block
-      [[maybe_unused]] const uint32_t blockIdxLocal(alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc)[0u]);
-      ALPAKA_ASSERT_ACC(0 == blockIdxLocal);
-      [[maybe_unused]] const uint32_t gridDimension(alpaka::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc)[0u]);
-      ALPAKA_ASSERT_ACC(1 == gridDimension);
-      // auto thIdx = alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u];
-
-      // For the prefix scan algorithm
-      constexpr int warpSize = cms::alpakatools::warpSize;
-      constexpr int blockSize = warpSize * warpSize;  // assume 32*32 = 1024
-
-      // For Phase1 there are 1856 pixel modules
-      // For Phase2 there are up to 4000 pixel modules
-      const int numberOfModules = clusterDataObj.metadata().size();
-      const int prefixScanUpperLimit = ((numberOfModules / blockSize) + 1) * blockSize;
-      ALPAKA_ASSERT_ACC(numberOfModules < prefixScanUpperLimit);
-
-      // Use N single-block prefix scan, then update all blocks after the first one.
-      auto& ws = alpaka::declareSharedVar<uint32_t[warpSize], __COUNTER__>(acc);
-      auto clusModuleStart = clusterDataObj.seedStripsNCMask();
-      auto prefix = clusterDataObj.prefixSeedStripsNCMask();
-      int leftModules = numberOfModules;
-      // First pass
-      uint32_t offset = 0;
-      while (leftModules > blockSize) {
-        // if (thIdx == 0){
-        //   printf("[%i] | numberOfModules %i | leftModules %i\n", thIdx, numberOfModules, leftModules);
-        // }
-        auto clusModuleStart_chunk = clusModuleStart.subspan(offset, blockSize);
-        auto prefix_chunk = prefix.subspan(offset, blockSize);
-        cms::alpakatools::blockPrefixScan(acc, clusModuleStart_chunk.data(), prefix_chunk.data(), blockSize, ws);
-        leftModules -= blockSize;
-      }
-      cms::alpakatools::blockPrefixScan(acc, clusModuleStart, prefix, leftModules, ws);
-
-      // Second pass
-      // The first blockSize modules are properly accounted by the blockPrefixScan.
-      // The additional modules need to be corrected adding the cuulative value from the last module of the previous block.
-      for (int doneModules = blockSize; doneModules < numberOfModules; doneModules += blockSize) {
-        int first = doneModules;
-        int last = (doneModules + blockSize) < numberOfModules ? (doneModules + blockSize) : numberOfModules;
-        for (int i : cms::alpakatools::independent_group_elements(acc, first, last)) {
-          clusterDataObj.prefixSeedStripsNCMask(i) += clusterDataObj.prefixSeedStripsNCMask(first - 1);
-          // printf("[%i] - prefixSeedStripsNCMask(%i) = %i\n", thIdx, i, clusterDataObj.prefixSeedStripsNCMask(i));
-        }
-        alpaka::syncBlockThreads(acc);
-      }
-    }
-  };
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip
 
 // kernels launchers
