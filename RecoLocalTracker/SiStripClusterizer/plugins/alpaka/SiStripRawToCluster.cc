@@ -127,16 +127,21 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         << "#sizeB,stripDataCond_," << alpaka::getExtentProduct(stripDataCond.buffer());
 
     // Unpack the raw FED data into strip digi
-    algo_.unpackStrips(iEvent.queue(), stripDataCond.const_data());
+    auto nStrips = algo_.unpackStrips(iEvent.queue(), stripDataCond.const_data());
+    if (nStrips == 0) {
+      // No strips to unpack, empty cluster collection
+      iEvent.emplace(stripClustPutToken_, 0, iEvent.queue());
+      iEvent.emplace(stripDigiPutToken_, 0, iEvent.queue());
+    } else {
+      // Run the clusterization algorithm (ThreeThresholdAlgorithm)
+      auto cluster_d = algo_.makeClusters(iEvent.queue(), stripDataCond.const_data());
 
-    // Run the clusterization algorithm (ThreeThresholdAlgorithm)
-    auto cluster_d = algo_.makeClusters(iEvent.queue(), stripDataCond.const_data());
+      // Get the clusters amplitudes
+      auto clusterAmpls_d = algo_.releaseDigiAmplitudes();
 
-    // Get the clusters amplitudes
-    auto clusterAmpls_d = algo_.releaseDigiAmplitudes();
-
-    iEvent.put(stripClustPutToken_, std::move(cluster_d));
-    iEvent.put(stripDigiPutToken_, std::move(clusterAmpls_d));
+      iEvent.put(stripClustPutToken_, std::move(cluster_d));
+      iEvent.put(stripDigiPutToken_, std::move(clusterAmpls_d));
+    }
   }
 
   std::unique_ptr<PortableFEDMover> SiStripRawToCluster::fillFedIdFedChBuffer(
@@ -236,6 +241,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         fedChOfs_wrt_rawFedId_.push_back(
             FEDChMetadata(idet, fedId, fedCh, fedChOfs, fedChOfs_wrt_rawFedId, buffROMode));
       }
+    }
+
+    // Do I have any channel to unpack ( FEDRaw data empty || mapping empty) ?
+    if (fedChOfs_wrt_rawFedId_.size() == 0) {
+      return nullptr;
     }
 
     // Create container for the buffer and mapping

@@ -324,7 +324,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
         const bool isNonLite = fedchannelunpacker::checks::isNonLiteZS(mode);
 
         const FEDChannel fedChan(fedChannelsData + fedChDataOfsBuf, fedChOfs, FEDChannel::ZSROMode(isNonLite));
-        const uint8_t packetCode = fedChan.packetCode();
+        uint8_t packetCode = fedChan.packetCode();
+        // packetCode for non-lite generic READOUT_MODE_ZERO_SUPPRESSED
+        // (https://github.com/cms-sw/cmssw/blob/CMSSW_16_0_X/RecoLocalTracker/SiStripClusterizer/plugins/ClustersFromRawProducer.cc#L398)
+        if (mode != READOUT_MODE_ZERO_SUPPRESSED) {
+          packetCode = 0;
+        }
+        packetCode = isNonLite ? packetCode : 0;
 
         uint32_t absoluteOffset = 0;
         if (chan > 0) [[likely]] {
@@ -678,6 +684,17 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     // Move ownership of the host-data container this class
     fedChMover_ = std::move(rFEDChMover);
 
+    // If not, allocate nStrips_h_ for the first time
+    if (!nStrips_h_) {
+      nStrips_h_ = cms::alpakatools::make_host_buffer<uint32_t>(queue);
+    }
+
+    // There are no channels (=>strips) to unpack, set to strip-to-unpack to zero and return
+    if (!fedChMover_ || fedChMover_->channelNb() == 0) {
+      alpaka::memset(queue, *nStrips_h_, 0);
+      return;
+    }
+
     // Move the data to the device
     fedBuffer_d_.emplace(cms::alpakatools::make_device_buffer<uint8_t[]>(queue, fedChMover_->bufferSize()));
     alpaka::memcpy(queue, *fedBuffer_d_, fedChMover_->buffer(), fedChMover_->bufferSize());
@@ -729,9 +746,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     alpaka::memcpy(queue, *nStrips_h_, viewSrc);
   }
 
-  void SiStripRawToClusterAlgo::unpackStrips(Queue& queue, const GainNoiseCals* calibs) {
+  uint32_t SiStripRawToClusterAlgo::unpackStrips(Queue& queue, const GainNoiseCals* calibs) {
     // Allocate the SiStripDigi collection on device
     const uint32_t nStrips = *nStrips_h_->data();
+    // Skip all if there are no strips to be unpacked
+    if (nStrips == 0) {
+      return nStrips;
+    }
     digis_d_ = std::make_unique<SiStripDigiDevice>(nStrips, queue);
 
     // Run the unpacking kernel
@@ -807,6 +828,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     alpaka::exec<Acc1D>(queue, workDiv, SiStripKer_setNCStripIndex{}, sClustersAux_d_->view());
 
     // dumpSeeds(queue, digis_d_.get(), sClustersAux_d_.get(), &stripMapping_d_.value()); // (for debugging)
+    return nStrips;
   }
 
   std::unique_ptr<SiStripClusterDevice> SiStripRawToClusterAlgo::makeClusters(Queue& queue,

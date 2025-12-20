@@ -31,10 +31,14 @@ namespace sistrip {
     }
 
     void produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const&) const override {
+      using out_t = edmNew::DetSetVector<SiStripCluster>;
+      auto output = std::make_unique<out_t>();
+
+      // Get clusters and amplitudes
       auto const& clusters_onHost = iEvent.get(siStripClustersToken_);
       auto const& amplitudes_onHost = iEvent.get(siStripDigiToken_);
 
-      const uint32_t clustersArrSize = clusters_onHost->metadata().size();
+      const uint32_t nClusterCandidates = clusters_onHost->metadata().size();
       const auto& clusterSizeArr = clusters_onHost->clusterSize();
       const auto& detIdArr = clusters_onHost->clusterDetId();
       const auto& firstStripArr = clusters_onHost->firstStrip();
@@ -45,6 +49,12 @@ namespace sistrip {
 
       const auto& clusterAmplArr = amplitudes_onHost->adc();
 
+      // Return immediately if there are no clusters
+      if (nClusterCandidates == 0) {
+        iEvent.put(siStripClustersSetVecPutToken_, std::move(output));
+        return;
+      }
+
       // Educated guess for the total number of detector IDs,
       // based on Run: 386593 Event: 536278171 with 13883 detectors.
       // const uint32_t nModulesWithClustersGuess = 15000;
@@ -53,22 +63,12 @@ namespace sistrip {
       // From Run: 386593 Event: 536278171 there are nClusterCandidates=112735 with
       // 99863 real clusters (so 112735-99863 = 12872 clusters are masked out )
       const uint32_t clusterCandidatesNb = clusters_onHost->nClusterCandidates();
-      const uint32_t goodClustersNb = clusters_onHost->candidateAcceptedPrefix(clustersArrSize - 1);
-
-      using out_t = edmNew::DetSetVector<SiStripCluster>;
-      auto output = std::make_unique<out_t>();
+      const uint32_t goodClustersNb = clusters_onHost->candidateAcceptedPrefix(nClusterCandidates - 1);
       // output->reserve(nModulesWithClustersGuess, goodClustersNb);
 
-      // Debugging
-      // output->reserve(nModulesWithClustersGuess, 10);
-      // iEvent.put(siStripClustersSetVecPutToken_, std::move(output));
-      // return ;
-
-      // std::vector<uint8_t> adcs;
       uint32_t clusterN = 0;
       for (uint32_t i = 0; i < clusterCandidatesNb && (clusterN < goodClustersNb);) {
         const auto detid = detIdArr[i];
-        // std::cout << "#fledm," << i << "," << detid << std::endl;
         out_t::FastFiller record(*output, detid);
 
         while (clusterN < goodClustersNb && detIdArr[i] == detid) {
@@ -79,20 +79,10 @@ namespace sistrip {
             const float barycenter = barycenterArr[i];
             const float charge = chargeArr[i];
 
-            // std::vector<uint8_t> adcs;
-            // adcs.reserve(size);
-
-            // for (uint32_t j = 0; j < size; ++j) {
-            //   const auto index = clusterIndexArr[i] + j;
-            //   const auto adc = clusterAmplArr[index];
-            //   adcs.push_back(adc);
-            // }
-
             const auto index = clusterIndexArr[i];
             auto clusterAdc = clusterAmplArr.subspan(index, size);
             std::vector<uint8_t> adcs(clusterAdc.begin(), clusterAdc.end());
 
-            // SiStripCluster(uint16_t firstStrip, std::vector<uint8_t>&& data, float barycenter, float charge)
             record.push_back(SiStripCluster(firstStrip, std::move(adcs), barycenter, charge));
             clusterN++;
           }
