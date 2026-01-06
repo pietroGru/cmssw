@@ -71,7 +71,7 @@ namespace sistrip {
         const auto detid = detIdArr[i];
         out_t::FastFiller record(*output, detid);
 
-        while (clusterN < goodClustersNb && detIdArr[i] == detid) {
+        while (i < clusterCandidatesNb && detIdArr[i] == detid) {
           if (candidateAcceptedArr[i]) {
             const auto size = clusterSizeArr[i];
             const auto firstStrip = firstStripArr[i];
