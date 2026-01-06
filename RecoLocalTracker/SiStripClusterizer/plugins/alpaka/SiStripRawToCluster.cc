@@ -244,7 +244,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
     }
 
     // Do I have any channel to unpack ( FEDRaw data empty || mapping empty) ?
-    if (fedChOfs_wrt_rawFedId_.size() == 0) {
+    if (fedChOfs_wrt_rawFedId_.empty()) {
       return nullptr;
     }
 
