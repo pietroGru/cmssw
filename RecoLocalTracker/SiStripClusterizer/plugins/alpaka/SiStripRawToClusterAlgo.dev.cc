@@ -215,8 +215,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
   class SiStripKer_applyQualConds {
   public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_HOST_ACC void operator()(TAcc const& acc,
+    ALPAKA_FN_ACC void operator()(Acc1D const& acc,
                                        uint32_t* blockStripN,
                                        uint32_t* invalidFedCh,
                                        uint8_t* fedChannelsData,
@@ -270,8 +269,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
   class SiStripKer_init {
   public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_HOST_ACC void operator()(TAcc const& acc,
+    ALPAKA_FN_ACC void operator()(Acc1D const& acc,
                                        const float r_channelThreshold,
                                        const float r_seedThreshold,
                                        const float r_clusterThresholdSquared,
@@ -297,8 +295,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
   class SiStripKer_unpackZS2 {
   public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_HOST_ACC void operator()(TAcc const& acc,
+    ALPAKA_FN_ACC void operator()(Acc1D const& acc,
                                        uint8_t* fedChannelsData,
                                        SiStripDigiView stripDigis,
                                        SiStripMappingConstView mapping,
@@ -356,8 +353,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
   class SiStripKer_setSeedStrips {
   public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_ACC void operator()(TAcc const& acc,
+    ALPAKA_FN_ACC void operator()(Acc1D const& acc,
                                   SiStripDigiConstView stripDigi,
                                   StripClustersAuxView clusterDataObj,
                                   SiStripMappingConstView mapping,
@@ -390,8 +386,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
   class SiStripKer_setNCSeedStrips {
   public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_ACC void operator()(TAcc const& acc,
+    ALPAKA_FN_ACC void operator()(Acc1D const& acc,
                                   SiStripDigiConstView stripDigi,
                                   StripClustersAuxView clusterDataObj,
                                   SiStripMappingConstView mapping) const {
@@ -411,8 +406,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
   class SiStripKer_setNCStripIndex {
   public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_ACC void operator()(TAcc const& acc, StripClustersAuxView clusterDataObj) const {
+    ALPAKA_FN_ACC void operator()(Acc1D const& acc, StripClustersAuxView clusterDataObj) const {
       // Loop over the strips
       for (auto stripIdx : uniform_elements(acc, clusterDataObj.metadata().size())) {
         if (clusterDataObj.seedStripsNCMask(stripIdx) == 1) {
@@ -425,8 +419,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
   class SiStripKer_makeCandidates {
   public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_ACC void operator()(TAcc const& acc,
+    ALPAKA_FN_ACC void operator()(Acc1D const& acc,
                                   const uint32_t kMaxSeedStrips,
                                   SiStripDigiConstView stripDataObj,
                                   StripClustersAuxConstView clusterDataObj,
@@ -575,8 +568,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
   class SiStripKer_endCandidates {
   public:
-    template <typename TAcc, typename = std::enable_if_t<alpaka::isAccelerator<TAcc>>>
-    ALPAKA_FN_ACC void operator()(TAcc const& acc,
+    ALPAKA_FN_ACC void operator()(Acc1D const& acc,
                                   SiStripDigiView stripDataObj,
                                   StripClustersAuxConstView clusterDataObj,
                                   SiStripClusterView clusters,
