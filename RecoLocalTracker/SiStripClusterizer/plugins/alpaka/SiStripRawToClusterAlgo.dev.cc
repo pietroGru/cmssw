@@ -216,11 +216,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
   class SiStripKer_applyQualConds {
   public:
     ALPAKA_FN_ACC void operator()(Acc1D const& acc,
-                                       uint32_t* blockStripN,
-                                       uint32_t* invalidFedCh,
-                                       uint8_t* fedChannelsData,
-                                       SiStripMappingView mapping,
-                                       const DetToFeds* qualityConditions) const {
+                                  uint32_t* blockStripN,
+                                  uint32_t* invalidFedCh,
+                                  uint8_t* fedChannelsData,
+                                  SiStripMappingView mapping,
+                                  const DetToFeds* qualityConditions) const {
       //
       for (auto chan : uniform_elements(acc, mapping.metadata().size())) {
         const auto fedId = mapping.fedID(chan);
@@ -270,15 +270,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
   class SiStripKer_init {
   public:
     ALPAKA_FN_ACC void operator()(Acc1D const& acc,
-                                       const float r_channelThreshold,
-                                       const float r_seedThreshold,
-                                       const float r_clusterThresholdSquared,
-                                       const uint8_t r_maxSequentialHoles,
-                                       const uint8_t r_maxSequentialBad,
-                                       const uint8_t r_maxAdjacentBad,
-                                       const float r_minGoodCharge,
-                                       const uint32_t r_clusterSizeLimit,
-                                       StripClustersAuxView clusterDataObj) const {
+                                  const float r_channelThreshold,
+                                  const float r_seedThreshold,
+                                  const float r_clusterThresholdSquared,
+                                  const uint8_t r_maxSequentialHoles,
+                                  const uint8_t r_maxSequentialBad,
+                                  const uint8_t r_maxAdjacentBad,
+                                  const float r_minGoodCharge,
+                                  const uint32_t r_clusterSizeLimit,
+                                  StripClustersAuxView clusterDataObj) const {
       if (once_per_grid(acc)) {
         // Initialize the members of the clusterizer
         clusterDataObj.channelThreshold() = r_channelThreshold;
@@ -296,10 +296,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
   class SiStripKer_unpackZS2 {
   public:
     ALPAKA_FN_ACC void operator()(Acc1D const& acc,
-                                       uint8_t* fedChannelsData,
-                                       SiStripDigiView stripDigis,
-                                       SiStripMappingConstView mapping,
-                                       const GainNoiseCals* calibs) const {
+                                  uint8_t* fedChannelsData,
+                                  SiStripDigiView stripDigis,
+                                  SiStripMappingConstView mapping,
+                                  const GainNoiseCals* calibs) const {
       // Loop over the FEDChannel collection to be digitized
       for (auto chan : uniform_elements(acc, mapping.metadata().size())) {
         // for (uint32_t chan=0; chan<(uint32_t)mapping.metadata().size(); chan++) {
