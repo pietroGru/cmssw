@@ -107,8 +107,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
 
     // Device conditions (cabling map)
     const auto& stripCablCond = iSetup.getData(stripCablCondGetToken_);
-    IfLogDebug(STRIPALPCHK, "STRIPALPCHK")
-        << "#sizeB,stripCablCond_," << alpaka::getExtentProduct(stripCablCond.buffer());
+    LogDebug("SiStripRawToCluster") << "#sizeB,stripCablCond_," << alpaka::getExtentProduct(stripCablCond.buffer());
 
     // Get FED raw data collection
     const auto& rawCollection = iEvent.get(fedRawGetToken_);
@@ -123,8 +122,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::sistrip {
   void SiStripRawToCluster::produce(device::Event& iEvent, device::EventSetup const& iSetup) {
     // Device conditions (strip noise)
     const auto& stripDataCond = iSetup.getData(stripDataCondGetToken_);
-    IfLogDebug(STRIPALPCHK, "STRIPALPCHK")
-        << "#sizeB,stripDataCond_," << alpaka::getExtentProduct(stripDataCond.buffer());
+    LogDebug("SiStripRawToCluster") << "#sizeB,stripDataCond_," << alpaka::getExtentProduct(stripDataCond.buffer());
 
     // Unpack the raw FED data into strip digi
     auto nStrips = algo_.unpackStrips(iEvent.queue(), stripDataCond.const_data());
