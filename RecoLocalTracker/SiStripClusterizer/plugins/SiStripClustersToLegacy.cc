@@ -7,6 +7,7 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/Utilities/interface/StreamID.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 
@@ -14,6 +15,8 @@
 #include "DataFormats/SiStripCluster/interface/SiStripCluster.h"
 #include "DataFormats/SiStripClusterSoA/interface/SiStripClusterHost.h"
 #include "DataFormats/SiStripDigiSoA/interface/SiStripDigiHost.h"
+
+#include <unordered_set>
 
 // using namespace ::sistrip;
 namespace sistrip {
@@ -57,18 +60,35 @@ namespace sistrip {
 
       // Educated guess for the total number of detector IDs,
       // based on Run: 386593 Event: 536278171 with 13883 detectors.
-      // const uint32_t nModulesWithClustersGuess = 15000;
+      const uint32_t nModulesWithClustersGuess = 15000;
       // The number of clusters from x->nClusterCandidates() is an upper limit,
       // the flag trueCluster then mask the real clusters.
       // From Run: 386593 Event: 536278171 there are nClusterCandidates=112735 with
       // 99863 real clusters (so 112735-99863 = 12872 clusters are masked out )
       const uint32_t clusterCandidatesNb = clusters_onHost->nClusterCandidates();
       const uint32_t goodClustersNb = clusters_onHost->candidateAcceptedPrefix(nClusterCandidates - 1);
-      // output->reserve(nModulesWithClustersGuess, goodClustersNb);
+      output->reserve(nModulesWithClustersGuess, goodClustersNb);
+
+      // std::unordered_set<uint32_t> seenDetIds;
+      // seenDetIds.reserve(clusterCandidatesNb);
+      // uint32_t duplicateClusters = 0;
+      // uint32_t duplicateDetIdGroups = 0;
 
       uint32_t clusterN = 0;
       for (uint32_t i = 0; i < clusterCandidatesNb && (clusterN < goodClustersNb);) {
         const auto detid = detIdArr[i];
+
+        // if (!seenDetIds.insert(detid).second) {
+        //   ++duplicateDetIdGroups;
+        //   while (i < clusterCandidatesNb && detIdArr[i] == detid) {
+        //     if (candidateAcceptedArr[i]) {
+        //       ++duplicateClusters;
+        //     }
+        //     ++i;
+        //   }
+        //   continue;
+        // }
+
         out_t::FastFiller record(*output, detid);
 
         while (i < clusterCandidatesNb && detIdArr[i] == detid) {
@@ -90,9 +110,11 @@ namespace sistrip {
         }
       }
 
-      if (edm::isDebugEnabled()) {
-        dumpClusters(output.get());
-      }
+      // if (duplicateDetIdGroups > 0) {
+      //   edm::LogWarning("SiStripClustersToLegacy") << "Skipped " << duplicateClusters << " cluster(s) in "
+      //                                              << duplicateDetIdGroups << " duplicate detId group(s)";
+      // }
+
       iEvent.put(siStripClustersSetVecPutToken_, std::move(output));
     }
 
